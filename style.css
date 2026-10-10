@@ -1,8 +1,8 @@
 /* style.css */
-/* v2.5.3 -> v2.5.4 */
+/* v2.5.4 -> v2.5.5 */
 /* Проект: GameBook1 */
 /* Функция: оформление игры (ХАД, панель текста, карты, оверлеи, анимации, панель быстрого доступа, галерея стартовых предметов) */
-/* Изменение: номер параграфа (§3) перенесён из правого нижнего угла блока текста в левый нижний. Раньше он был справа, и там же стояла кнопка автопрокрутки — они накладывались. Теперь номер параграфа слева, кнопка автопрокрутки справа */
+/* Изменение: у панели текста уменьшены внутренние отступы сверху и снизу — было 16 и 22 пикселя, стало по 3 пикселя. Раньше между верхней (нижней) границей рамки и стрелкой прокрутки оставалось большое пустое поле. Теперь стрелки почти касаются рамки — 3 пикселя зазора */
 :root{--wood:#5b422a;--wood2:#7a5a38;--parch:#f0e2c4;--ink:#2f2417;--gold:#e8c76a}
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{height:100%}
@@ -56,8 +56,12 @@ body{font-family:Georgia,'Times New Roman',serif;background:#0c110b;color:#efe6d
 .histbtn .pl1{display:none}
 .histbtn:hover{border-color:#b8d494}
 .histbtn:active{transform:translateY(1px)}
-/* ===== Панель текста ===== */
-#panel{position:relative;width:100%;margin-top:-4px;background:rgba(16,23,14,.78);border:2px solid rgba(122,90,56,.65);border-radius:14px;padding:16px 18px 22px;box-shadow:0 8px 30px rgba(0,0,0,.35)}
+/* ===== Панель текста =====
+   Внутренние отступы панели уменьшены: сверху и снизу по 3 пикселя вместо
+   16 и 22. Раньше между верхней (нижней) границей рамки и стрелкой прокрутки
+   оставалось большое пустое поле. Теперь стрелки почти касаются рамки.
+   Боковые отступы оставлены как были — 18 пикселей. */
+#panel{position:relative;width:100%;margin-top:-4px;background:rgba(16,23,14,.78);border:2px solid rgba(122,90,56,.65);border-radius:14px;padding:3px 18px 3px;box-shadow:0 8px 30px rgba(0,0,0,.35)}
 #panel .txt{
   position:relative;
   font-size:17px;
