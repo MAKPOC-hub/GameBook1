@@ -1,8 +1,8 @@
 // settings.js
-// v2.1.15 -> v2.1.16
+// v2.1.16 -> v2.1.17
 // Проект: GameBook1
-// Функция: настройки игры (размер шрифта, размер карт, рубашки карт, знаки, осколки, рестарт) + профиль + иконки валют + диалоги осколков, золота, знаков + реклама-заглушка + автопрокрутка текста
-// Изменение: ширина карты выбора теперь ограничена сверху половиной ширины экрана минус отступы. На телефоне это гарантирует, что в ряд помещается минимум две карты, даже если в настройках выбран большой размер карт (x1.5 или x2). На широких экранах ограничение не действует — карты остаются того размера, который выбран в настройках
+// Функция: настройки игры (размер шрифта, размер карт, рубашки карт, знаки, осколки, рестарт) + профиль + иконки валют + диалоги осколков, золота, знаков + реклама + автопрокрутка текста + начисление тайных символов
+// Изменение: убраны все тестовые надписи и автоначисление 1000 осколков при первом запуске. Новый профиль начинается с 0 осколков. Добавлена функция window.awardMark — начисляет тайный символ за достижение один раз за всю жизнь профиля. Знаки выдаются из обёртки перехода на узел (см. engine_checkpoints_logic.js)
 
 (function(){
 const FZ=[1,1.15,1.3,1.5,1.7];
@@ -29,25 +29,21 @@ try{
   }
 }catch(e){}
 
-let P={marks:0,skins:{},skin:'ag',markIcon:0,adcoins:1000};
+let P={marks:0,marksGiven:{},skins:{},skin:'ag',markIcon:0,adcoins:0};
 try{
   const r=localStorage.getItem('zl_profile');
   if(r){
     const p=JSON.parse(r);
     if(p&&p.skins){
       P.marks=+p.marks||0;
+      P.marksGiven=p.marksGiven||{};
       P.skins=p.skins;
       P.skin=p.skin||'ag';
       if(typeof p.markIcon==='number')P.markIcon=p.markIcon;
-      P.adcoins=(typeof p.adcoins==='number')?p.adcoins:1000;
+      P.adcoins=(typeof p.adcoins==='number')?p.adcoins:0;
     }
   }
 }catch(e){}
-
-if(P.adcoins<1000){
-  P.adcoins=1000;
-  try{localStorage.setItem('zl_profile',JSON.stringify(P));}catch(e){}
-}
 
 function saveP(){try{localStorage.setItem('zl_profile',JSON.stringify(P));}catch(e){}}
 
@@ -253,12 +249,12 @@ ysdk.adv.showRewardedVideo({callbacks:{
 onOpen:function(){},
 onRewarded:function(){fin();},
 onClose:function(){fin();},
-onError:function(){toast('Реклама недоступна — действие засчитано');fin();}
+onError:function(){toast('Реклама недоступна');fin();}
 }});
 return;
 }catch(e){}
 }
-toast('Тест-режим: видео недоступно, действие засчитано');
+toast('Реклама недоступна');
 setTimeout(fin,700);
 }
 window.showAdGame=showAd;
@@ -319,7 +315,7 @@ if(old&&old.parentNode)old.parentNode.removeChild(old);
 const ov2=document.createElement('div');
 ov2.className='ovl';ov2.id='adcoinov';
 ov2.innerHTML='<div class="invbox detbox"><h3 style="display:flex;align-items:center;justify-content:center;gap:8px">Осколок '+adIcon(26)+' <b id="adcnum" class="purse-n">'+P.adcoins+'</b></h3>'
-+'<div class="adchint">Тестовая версия:<div class="hgap"></div>при старте выдано 1000 осколков</div>'
++'<div class="adchint">Осколки даются за просмотр рекламы.</div>'
 +'<button class="btn adbtn" id="ad_get"><span>Реклама +1</span>'+adIcon(18)+'</button>'
 +'<button class="btn adbtn" id="ad_close1">Закрыть</button>'
 +'</div>';
@@ -411,7 +407,7 @@ if(invbox&&!invbox.querySelector('.marks-box')){
 const head=invbox.querySelector('.invhead');
 const adbox=document.createElement('div');
 adbox.className='adcoins-box pursewrap';
-adbox.title='Осколки: тест-версия, 1000 при старте';
+adbox.title='Осколки';
 adbox.innerHTML=adIcon(26)+' <span class="purse-n">'+P.adcoins+'</span>';
 adbox.addEventListener('click',openAdCoinDialog);
 const mbox=document.createElement('div');
@@ -532,6 +528,25 @@ itg.addEventListener('click',function(){
 if(typeof window.openItemGallery==='function'){window.openItemGallery();}
 });
 }
+
+/* ===== Начисление тайного символа за достижение =====
+   Знак выдаётся один раз за всю жизнь профиля. Если за это достижение
+   игрок уже получал знак — функция ничего не делает.
+   Отметки о выданных знаках хранятся в P.marksGiven (объект вида id→1).
+   Функция вызывается из обёртки перехода на узел (engine_checkpoints_logic.js)
+   при заходе на узлы завершения глав и при наличии сюжетных флагов.
+   ↗️ Вызывается из: engine_checkpoints_logic.js (обёртка go)
+   ↙️ Связано с: P.marksGiven (отметки выданных достижений), updateMarks */
+window.awardMark=function(id,title){
+  if(!P.marksGiven)P.marksGiven={};
+  if(P.marksGiven[id])return false;
+  P.marksGiven[id]=1;
+  P.marks++;
+  saveP();
+  if(typeof updateMarks==='function')updateMarks();
+  if(typeof toast==='function')toast('Тайный символ! '+(title||''));
+  return true;
+};
 
 window.markIcon=markIcon;
 window.adIcon=adIcon;

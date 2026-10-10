@@ -1,8 +1,8 @@
 // engine_render_screen.js
-// v1.0.19 -> v1.0.20
+// v1.0.20 -> v1.0.21
 // Проект: GameBook1
 // Функция: главный экран и экран боя — отрисовка текущего узла или текущего боя, автопрокрутка текста
-// Изменение: кнопка автопрокрутки возвращена в правый нижний угол (bottom:0;right:0). В прошлой правке она была ошибочно перенесена влево — теперь номер параграфа слева, кнопка автопрокрутки справа, они не пересекаются
+// Изменение: убраны все отладочные сообщения в консоли (console.log) — строки вида [autoscroll]... и [step].... Для публикации на Яндекс.Играх чистый релиз без отладки
 
 'use strict';
 
@@ -141,10 +141,6 @@ function attachTxtScroll(){
   const hasScroll=ptxt.scrollHeight > ptxt.clientHeight+4;
   const auto=_readAutoSafe();
 
-  try{
-    console.log('[autoscroll] enabled='+auto.enabled+' mode='+auto.mode+' speed='+auto.speed+' step='+auto.step+' hasScroll='+hasScroll+' scrollH='+ptxt.scrollHeight+' clientH='+ptxt.clientHeight);
-  }catch(e){}
-
   if(!auto.enabled||!hasScroll){
     if(_autoBtn&&_autoBtn.parentNode){_autoBtn.parentNode.removeChild(_autoBtn);_autoBtn=null;}
     return;
@@ -188,13 +184,9 @@ function attachTxtScroll(){
      ↙️ Используется в: smoothFrame, кнопка, начальный автозапуск */
   const MOVE_MS=1000;
   function stepPausePhase(){
-    if(!_autoRunning){
-      try{console.log('[step] not running, exit');}catch(e){}
-      return;
-    }
+    if(!_autoRunning)return;
     const max=ptxt.scrollHeight-ptxt.clientHeight;
     if(ptxt.scrollTop>=max-1){
-      try{console.log('[step] at end, stop');}catch(e){}
       _stopAuto();return;
     }
     const a=_readAutoSafe();
@@ -204,9 +196,6 @@ function attachTxtScroll(){
       return;
     }
     const pauseMs=_stepPauseMs(a);
-    try{
-      console.log('[step] waiting '+pauseMs+'ms (speed='+a.speed+', step='+a.step+')');
-    }catch(e){}
     _autoPauseTimer=setTimeout(function(){
       _autoPauseTimer=null;
       stepMovePhase();
@@ -230,9 +219,6 @@ function attachTxtScroll(){
     const from=ptxt.scrollTop;
     const to=Math.min(from+stepPx, maxNow);
     const startT=performance.now();
-    try{
-      console.log('[step] move from='+from.toFixed(1)+' to='+to.toFixed(1)+' max='+maxNow.toFixed(1)+' stepPx='+stepPx.toFixed(1)+' lineH='+lineH.toFixed(1)+' dur='+MOVE_MS+'ms');
-    }catch(e){}
     function frame(){
       if(!_autoRunning)return;
       const elapsed=performance.now()-startT;
