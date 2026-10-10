@@ -1,8 +1,8 @@
 // engine_state_dialogs.js
-// v1.0.3 -> v1.0.4
+// v1.0.4 -> v1.0.5
 // Проект: GameBook1
 // Функция: универсальные модальные окна — подтверждение покупки, информационное окно, окно «Мешок полон», окно принудительной выдачи ключевого предмета, окно результата броска с кубиком, окно результата находки
-// Изменение: добавлена функция showPickupResult — окно, которое показывает, какие предметы из находки поместились в мешок, а какие нет. Раньше непоместившийся предмет обозначался коротким всплывающим сообщением, которое исчезало через 2 секунды и легко пропускалось. Теперь это отдельное окно с кнопкой «Далее» — игрок обязательно увидит, что было получено, а что осталось
+// Изменение: в окне результата находки добавлена кнопка «Назад». Теперь у игрока есть выбор: остаться на узле (освободить место в мешке, посмотреть рекламу, купить ячейку, вернуться и забрать всё) или уйти дальше (взять только то, что поместилось). Раньше была только кнопка «Далее», и игрок уходил вперёд, навсегда теряя непоместившиеся предметы. Заодно исправлен текст: фраза «сможете забрать в следующий раз» некорректна, потому что переходы только вперёд — в этот узел вернуться нельзя. Теперь текст говорит: «Освободите место и возьмите находку снова»
 
 'use strict';
 
@@ -91,20 +91,26 @@ function showRollResult(opts,onClose){
 }
 window.showRollResult=showRollResult;
 
-/* ===== Окно результата находки =====
-   Показывается после того, как игрок взял предметы из узла. В верхней
-   части — то, что поместилось в мешок. В нижней (если есть) — то, что
-   не поместилось: такие предметы остаются на месте и не переходят
-   к игроку. Игрок нажимает «Далее», чтобы продолжить путь.
-   ↘️ Альтернатива, когда совсем нет места: showBagFullDialog (в этом же файле)
+/* ===== Окно находки, когда места в мешке не хватает =====
+   Показывается, если игрок нажал карту находки, но в мешке недостаточно
+   свободных слотов для всех предметов. В окне видны все предметы находки:
+   те, что поместятся — яркие; те, что не поместятся — затемнённые.
+   У игрока две кнопки:
+   — «Назад»: закрыть окно и остаться на узле. Ничего не выдаётся —
+     ни предметы, ни золото. Игрок может открыть мешок, выбросить ненужное,
+     посмотреть рекламу за осколки и купить новую ячейку — а затем снова
+     нажать карту находки и забрать всё, что не поместилось раньше.
+   — «Продолжить»: забрать столько предметов, сколько помещается в текущий
+     мешок, и уйти дальше. Непоместившиеся предметы остаются на месте
+     навсегда — вернуться в этот узел уже нельзя.
    ↙️ Используется в: engine_story_special.js (play — блок c.pick) */
-function showPickupResult(gotItems,lostItems,onClose){
+function showPickupResult(items,free,onBack,onContinue){
   const old=document.getElementById('pickupresult');
   if(old&&old.parentNode)old.parentNode.removeChild(old);
   const ov=document.createElement('div');
   ov.className='ovl';ov.id='pickupresult';
 
-  function _itemCardHTML(id,opacity){
+  function _itemCardHTML(id,willFit){
     const info=ITEMS[id]||{n:String(id)};
     const a=(window.ItemCards&&typeof window.ItemCards.get==='function')?window.ItemCards.get(id):null;
     let inner='';
@@ -113,42 +119,43 @@ function showPickupResult(gotItems,lostItems,onClose){
     }else{
       inner='<div class="gbp"><div class="gbp-art" style="font-size:36px;color:#e9dfc5">'+info.n.charAt(0)+'</div></div>';
     }
-    return '<div style="text-align:center;opacity:'+(opacity||1)+'">'
+    return '<div style="text-align:center;opacity:'+(willFit?1:.45)+'">'
       +inner
       +'<div style="font-size:12px;color:#e9dfc5;margin-top:4px;line-height:1.2">'+info.n+'</div>'
       +'</div>';
   }
-  function _grid(items,opacity){
-    let h='<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(80px,1fr));gap:10px;margin:6px 0 10px">';
-    items.forEach(function(id){h+=_itemCardHTML(id,opacity);});
-    h+='</div>';
-    return h;
-  }
 
-  let body='<h3 style="margin-bottom:4px">Из мешка</h3>';
-  if(gotItems&&gotItems.length){
-    body+='<div style="text-align:center;font-size:14px;color:#c9e8a8;letter-spacing:1px;margin-top:6px">Получено</div>';
-    body+=_grid(gotItems,1);
-  }
-  if(lostItems&&lostItems.length){
-    body+='<div style="text-align:center;font-size:14px;color:#e8b0a0;letter-spacing:1px;margin-top:10px">Не поместилось</div>';
-    body+=_grid(lostItems,.55);
-    body+='<div style="text-align:center;font-size:12.5px;line-height:1.4;color:#e9dfc5;opacity:.8;margin:4px 0 8px">'
-      +'Эти предметы остались на месте. Освободите место в мешке или купите ячейку — и сможете забрать их в следующий раз.'
-      +'</div>';
-  }
-  body+='<div style="display:flex;justify-content:center;margin-top:14px">'
-    +'<button class="btn" id="pk_ok" style="background:linear-gradient(#8fae62,#6d8c4a);border-color:#b8d494;color:#10160c">Далее</button>'
+  let grid='<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(80px,1fr));gap:10px;margin:8px 0 12px">';
+  items.forEach(function(id,i){
+    grid+=_itemCardHTML(id,i<free);
+  });
+  grid+='</div>';
+
+  ov.innerHTML='<div class="invbox detbox" style="max-width:420px">'
+    +'<h3 style="margin-bottom:4px">Мешок полон</h3>'
+    +grid
+    +'<div style="text-align:center;font-size:14px;line-height:1.5;margin:6px 0 4px">'
+    +'В мешке не хватает места для всей находки.'
+    +'<div class="hgap"></div>'
+    +'Освободите место в рюкзаке или купите ячейку — и возьмите находку снова.'
+    +'</div>'
+    +'<div style="display:flex;justify-content:center;align-items:center;gap:12px;margin-top:16px;flex-wrap:wrap">'
+    +'<button class="btn" id="pk_back">Назад</button>'
+    +'<button class="btn" id="pk_cont" style="background:linear-gradient(#8fae62,#6d8c4a);border-color:#b8d494;color:#10160c">Продолжить</button>'
+    +'</div>'
     +'</div>';
-
-  ov.innerHTML='<div class="invbox detbox" style="max-width:420px">'+body+'</div>';
   document.body.appendChild(ov);
-  function close(){
-    if(ov.parentNode)ov.parentNode.removeChild(ov);
-    if(typeof onClose==='function')onClose();
-  }
-  ov.querySelector('#pk_ok').addEventListener('click',close);
-  /* Клик по фону не закрывает окно — игрок должен нажать «Далее». */
+  function close(){if(ov.parentNode)ov.parentNode.removeChild(ov);}
+  ov.querySelector('#pk_back').addEventListener('click',function(){
+    close();
+    if(typeof onBack==='function')onBack();
+  });
+  ov.querySelector('#pk_cont').addEventListener('click',function(){
+    close();
+    if(typeof onContinue==='function')onContinue();
+  });
+  /* Клик по фону не закрывает окно — игрок должен осознанно выбрать:
+     остаться или уйти. */
 }
 window.showPickupResult=showPickupResult;
 
@@ -210,14 +217,13 @@ function showInfo(text, onClose){
 }
 window.showInfo=showInfo;
 
-/* ===== Окно «Мешок полон» =====
-   Показывается, когда игрок получает предмет, но в мешке нет места совсем
-   (ни одного свободного слота). Две кнопки:
-   — «Назад»: закрыть окно и остаться на текущем узле. Игрок может открыть
-     мешок, купить ячейку, потом снова нажать карту находки.
-   — «Продолжить»: закрыть окно и продолжить путь без предмета.
+/* ===== Окно «Мешок полон» (одиночный предмет) =====
+   Показывается, когда игрок получает один предмет, но в мешке нет места
+   совсем. Две кнопки: «Назад» (остаться на узле) и «Продолжить»
+   (уйти дальше без предмета). Для случая находки с несколькими предметами
+   используется showPickupResult (см. выше) — там свой формат окна.
    ↗️ ITEMS, ItemCards — в: engine_data_items.js, itemcards_export.js
-   ↙️ Используется в: engine_story_special.js (play — ветки pick и checkTake),
+   ↙️ Используется в: engine_story_special.js (play — ветка checkTake),
       engine_checkpoints_logic.js (обёртка go — авто-выдача при autoGet) */
 function showBagFullDialog(itemId, onBack, onContinue){
   const old=document.getElementById('bagfulldialog');
@@ -235,7 +241,7 @@ function showBagFullDialog(itemId, onBack, onContinue){
     +preview
     +'<div style="text-align:center;font-size:15px;line-height:1.5;margin:8px 0">'
     +'<b style="color:#ffe9a0">'+info.n+'</b> не может добавиться в инвентарь.'
-    +'<div class="hgap"></div>Чтобы получить предмет, освободите место в мешке.'
+    +'<div class="hgap"></div>Освободите место в рюкзаке или купите ячейку — и возьмите предмет снова.'
     +'</div>'
     +'<div style="display:flex;justify-content:center;align-items:center;gap:12px;margin-top:16px;flex-wrap:wrap">'
     +'<button class="btn" id="bagf_back">Назад</button>'
