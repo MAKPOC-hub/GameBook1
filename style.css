@@ -1,8 +1,8 @@
 /* style.css */
-/* v2.4.9 */
+/* v2.4.9 -> v2.5.0 */
 /* Проект: GameBook1 */
 /* Функция: оформление игры (ХАД, панель текста, карты, оверлеи, анимации, панель быстрого доступа, галерея стартовых предметов) */
-/* Изменение: у кнопки «История» в верхней панели подпись «История» скрыта на всех устройствах — остаётся только значок. Правило подпрыгивания карты при наведении включается только при одновременном совпадении (hover: hover) и (pointer: fine) — это закрывает ложное срабатывание на мобильных браузерах, которые сообщают о наличии hover, хотя управление идёт пальцем */
+/* Изменение: в мобильной версии верхняя панель перестроена в два ряда. Первый ряд — четыре кнопки в равных ячейках: название локации, «История», «Мешок», «Настройки». Второй ряд — сердца по центру. Пробелы между всеми кнопками в верхнем ряду одинаковые (за это отвечает gap). Раньше было три ряда: локация и мешок сверху, история и настройки по бокам снизу, сердца в центре */
 :root{--wood:#5b422a;--wood2:#7a5a38;--parch:#f0e2c4;--ink:#2f2417;--gold:#e8c76a}
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{height:100%}
@@ -296,28 +296,34 @@ body{font-family:Georgia,'Times New Roman',serif;background:#0c110b;color:#efe6d
 #cpchoice{z-index:49}
 #adcoinov,#goldov,#markov{z-index:46}
 
-/* ===== Адаптив: узкий экран (телефон) ===== */
+/* ===== Адаптив: узкий экран (телефон) =====
+   Верхняя панель перестроена в два ряда.
+   Строка 1: локация · История · Мешок · Настройки — четыре равные ячейки.
+   Строка 2: сердца по центру, на всю ширину.
+   Пробелы между всеми кнопками в верхнем ряду одинаковые — за это отвечает gap. */
 @media(max-width:640px){
   #hud{
-    grid-template-columns:1fr 1fr 1fr;
+    grid-template-columns:1fr 1fr 1fr 1fr;
     grid-template-areas:
-      "stat stat bag"
-      "hist heart set";
-    gap:6px 6px;
+      "stat hist bag set"
+      "heart heart heart heart";
+    gap:6px;
     padding:8px 10px;
     font-size:13px;
   }
   .hud-l,.hud-c,.hud-r{display:contents}
-  #statb{grid-area:stat;justify-self:start;min-width:0;overflow:hidden;text-overflow:ellipsis;max-width:100%}
-  #histb{grid-area:hist;justify-self:start}
-  #hearts{grid-area:heart;justify-self:center;display:flex;align-items:center;justify-content:center}
-  #bagb{grid-area:bag;justify-self:end}
-  #setb{grid-area:set;justify-self:end}
+  /* Все четыре кнопки верхнего ряда — растянуты на равную ширину
+     через justify-self:stretch, чтобы промежутки между ними были
+     одинаковыми. */
+  #statb{grid-area:stat;justify-self:stretch;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:11px;padding:4px 6px}
+  #histb{grid-area:hist;justify-self:stretch;padding:4px 6px;min-height:42px}
+  #bagb{grid-area:bag;justify-self:stretch;padding:4px 6px;min-height:42px}
+  #setb{grid-area:set;justify-self:stretch;padding:2px;min-height:42px;min-width:0}
+  /* Сердца — во второй строке, по центру. */
+  #hearts{grid-area:heart;justify-self:center;display:flex;align-items:center;justify-content:center;padding:2px 0}
 
-  #bagb{padding:4px 8px;min-height:42px}
   #bagb .pl1{display:none}
-  #histb{padding:4px 8px;min-height:42px}
-  #setb{padding:2px;min-height:42px;min-width:42px}
+  #histb .pl1{display:none}
   #setb svg{width:28px;height:28px}
 
   #panel .txt{font-size:15px}
