@@ -1,8 +1,8 @@
 // settings.js
-// v2.1.15
+// v2.1.15 -> v2.1.16
 // Проект: GameBook1
 // Функция: настройки игры (размер шрифта, размер карт, рубашки карт, знаки, осколки, рестарт) + профиль + иконки валют + диалоги осколков, золота, знаков + реклама-заглушка + автопрокрутка текста
-// Изменение: восстановлена отсутствующая функция headerGearSVG. Она вызывается при создании окна настроек, но её определения в файле не было — из-за этого скрипт настроек обрывался в самом начале, окно настроек не открывалось, а сохранённый размер шрифта не применялся (текст становился мелким)
+// Изменение: ширина карты выбора теперь ограничена сверху половиной ширины экрана минус отступы. На телефоне это гарантирует, что в ряд помещается минимум две карты, даже если в настройках выбран большой размер карт (x1.5 или x2). На широких экранах ограничение не действует — карты остаются того размера, который выбран в настройках
 
 (function(){
 const FZ=[1,1.15,1.3,1.5,1.7];
@@ -162,7 +162,12 @@ css.textContent=':root{--fz:1;--cz:1}'
 +'.ct>span{display:inline;text-align:center;line-height:1.25}'
 +'.cg{font-size:calc(10.5px*max(var(--fz),var(--cz)))!important;color:var(--ctag)!important}'
 +'.cardwrap .cn{width:calc(26px*var(--cz))!important;height:calc(26px*var(--cz))!important;font-size:calc(15px*var(--cz))!important}'
-+'.card{width:calc(clamp(115px,19.8vw,151px)*var(--cz)*1.1)!important;padding-bottom:calc(10px + 22px*var(--cz))!important;background:var(--cbg)!important;border-color:var(--cbr)!important}'
+/* ⚠️ Ширина карты ограничена сверху половиной ширины экрана минус отступы.
+   Это гарантирует, что на телефоне в ряд помещается минимум две карты,
+   даже если в настройках выбран большой размер карт (x1.5 или x2).
+   На широких экранах ограничение не действует: min() возвращает первое
+   выражение (базовую ширину с множителем), потому что оно меньше. */
++'.card{width:min(calc(clamp(115px,19.8vw,151px)*var(--cz)*1.1),calc((100vw - 50px)/2))!important;padding-bottom:calc(10px + 22px*var(--cz))!important;background:var(--cbg)!important;border-color:var(--cbr)!important}'
 +'.card::before{border-color:var(--cb2)!important;background-image:radial-gradient(circle,var(--cdot) 1.4px,transparent 1.9px)!important;background-size:calc(13px*var(--cz))!important}'
 +'.card::after{content:var(--cglyph)!important;color:var(--cglyc)!important;font-size:calc(var(--cgfs)*var(--cz))!important;top:var(--cgtop)!important;left:var(--cgleft)!important;right:var(--cgright)!important;transform:var(--cgtr)!important}'
 +'#cards{gap:calc(14px*var(--cz))!important;min-height:calc(165px*var(--cz))!important}'
@@ -180,7 +185,7 @@ css.textContent=':root{--fz:1;--cz:1}'
 +'.sgroup .srow:last-child{margin-bottom:4px}'
 +'.settitle{display:flex;align-items:center;justify-content:center;gap:12px;font-variant:small-caps;letter-spacing:2px;color:#f0e2c4;font-size:18px;margin-bottom:10px;text-align:center}'
 +'.settitle svg{display:block;flex-shrink:0;filter:drop-shadow(0 2px 3px rgba(0,0,0,.5))}'
-+'@media(max-width:640px){#panel .txt{font-size:calc(15px*var(--fz))!important}.card{width:calc(clamp(94px,27vw,126px)*var(--cz)*1.1)!important}.heart{font-size:calc(27px*var(--fz))!important}}';
++'@media(max-width:640px){#panel .txt{font-size:calc(15px*var(--fz))!important}.heart{font-size:calc(27px*var(--fz))!important}}';
 const DG='--cbg:'+GL+',repeating-linear-gradient(45deg,#2e4d27 0 9px,#38582e 9px 18px),#2e4d27;--cbr:#5b422a;--cb2:rgba(122,90,56,.75);--cdot:rgba(15,32,12,.5);--cglyph:"❧";--cglyc:rgba(232,199,106,.75);--cplaq:'+PLP+';--cplaqi:#2f2417;--cplaqb:#5b422a;--ctag:#d9ecb8';
 css.textContent+='body{'+DG+';--cgfs:14px;--cgtop:9px;--cgright:11px;--cgleft:auto;--cgtr:none}';
 document.head.appendChild(css);
