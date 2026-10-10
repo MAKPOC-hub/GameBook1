@@ -1,8 +1,8 @@
 // engine_render_inventory.js
-// v1.0.0
+// v1.0.0 -> v1.0.1
 // Проект: GameBook1
-// Функция: мешок и просмотр предмета — открытие мешка, картинка кошелька, покупка ячейки, просмотр предмета, закрытие мешка
-// Изменение: файл создан — выделен из engine4.js (PURSE_SVG, openInv, unlockSlot, doUnlockSlot, openDetail, closeInv)
+// Функция: просмотр предмета и открытие мешка
+// Изменение: в окне описания предмета добавлена кнопка применения для свитка огня в бою. Также убрана автопроверка на пустой #invbox — окно мешка больше не открывается из HUD, но всё ещё может быть вызвано программно (например, при переполнении из диалогов). Функция openInv оставлена без изменений
 
 'use strict';
 
@@ -11,10 +11,14 @@
 const PURSE_SVG='<svg viewBox="0 0 40 48" width="38" height="46" aria-hidden="true"><defs><linearGradient id="bagGrad" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#a0764a"/><stop offset=".5" stop-color="#7a5230"/><stop offset="1" stop-color="#4a2e18"/></linearGradient><radialGradient id="coinGrad" cx=".35" cy=".35"><stop offset="0" stop-color="#ffe9a0"/><stop offset=".7" stop-color="#d9a636"/><stop offset="1" stop-color="#8a611a"/></radialGradient></defs><path d="M10 18 Q5 28 8 38 Q20 46 32 38 Q35 28 30 18 Z" fill="url(#bagGrad)" stroke="#3a2410" stroke-width="1.5"/><ellipse cx="20" cy="18" rx="10" ry="3" fill="#5a3a1e" stroke="#3a2410" stroke-width="1"/><path d="M12 16 Q20 10 28 16" fill="none" stroke="#c9a24a" stroke-width="1.5"/><path d="M20 10 L20 4" stroke="#c9a24a" stroke-width="1.5"/><circle cx="20" cy="4" r="2" fill="#c9a24a"/></svg>';
 
 /* ===== Мешок =====
+   ⚠️ Окно мешка открывается только программно — при переполнении из
+   диалогов «Мешок полон» или из вспомогательных сценариев. Кнопки мешка
+   в верхней панели больше нет.
    ↗️ ItemCards — в: itemcards.js
-   ↗️ openDetail, unlockSlot — в этом же файле
+   ↗️ openDetail — в этом же файле
    ↗️ isReady, cdLeft — в: engine_state_cooldown.js
-   ↙️ Вызывается из: engine_items_apply.js (eatItem), engine_render_inventory.js (unlockSlot), engine_overlay_input.js (кнопка Мешок) */
+   ↙️ Вызывается из: engine_items_apply.js (eatItem), engine_state_dialogs.js
+      (showBagFullDialog), engine_checkpoints_logic.js (обёртка go — ветка autoGet) */
 function openInv(){
   const box=$('#invbox');
   const BASE=3, PREMIUM=5, COST=3;
@@ -83,10 +87,20 @@ function doUnlockSlot(COST){
 }
 
 /* ===== Просмотр предмета =====
+   Открывается кликом по предмету в панели быстрого доступа или по предмету
+   в окне мешка (которое теперь вызывается только программно).
+   Кнопки зависят от типа предмета:
+   — еда и питьё: «Съесть» (вне боя);
+   — свиток лечения: «Сотворить» (вне боя);
+   — свиток огня: «Применить» (только в бою);
+   — особые предметы (компас, вспышка, лютня, бросок тени): «Применить»
+     (если готовы) или «Сбросить перезарядку» (если на перезарядке);
+   — всегда: «Выкинуть» и «Закрыть».
    ↗️ ItemCards — в: itemcards.js
    ↗️ applyItemFromBag, eatItem — в: engine_items_apply.js
    ↗️ resetCdForCoins — в: engine_state_cooldown.js
-   ↙️ Вызывается из: openInv (в этом же файле) */
+   ↗️ fireScroll — в: engine_combat.js
+   ↙️ Вызывается из: openInv (в этом же файле), renderQuickbar (engine_render_quickbar.js) */
 function openDetail(it){
   let det=$('#det');
   if(!det){
@@ -107,8 +121,13 @@ function openDetail(it){
   const ready=isReady(it);
   const cd=cdLeft(it);
   const canHeal=!S.combat&&S.hp<S.maxhp&&HEALS[it];
+  /* Еда — съесть вне боя. */
   if(HEALS[it]&&canHeal)btns+='<button class="btn" id="detuse">Съесть (+'+HEALS[it]+' '+ico('heart',14)+')</button> ';
+  /* Свиток лечения — сотворить вне боя. */
   if(it==='scroll_heal'&&canHeal)btns+='<button class="btn" id="detuse">Сотворить (+2 '+ico('heart',14)+')</button> ';
+  /* Свиток огня — применить в бою. */
+  if(it==='scroll_fire'&&S.combat)btns+='<button class="btn" id="detfire">Огненный шар (враг −2 '+ico('heart',14)+')</button> ';
+  /* Особые предметы с перезарядкой. */
   if(it==='compass'||it==='flash'||it==='lute'||it==='vory_knife'){
     if(!ready){
       btns+='<button class="btn" id="detreset">Сбросить перезарядку (3 осколка)</button> ';
@@ -123,8 +142,13 @@ function openDetail(it){
   if(u)u.addEventListener('click',function(){
     if(it==='scroll_heal'){
       S.inv.splice(S.inv.indexOf(it),1);healHp(2);toast('Исцеление (+2 сердца)');save();
-      det.classList.add('hidden');openInv();
+      det.classList.add('hidden');updateHudCurrencies();render();
     }else{eatItem(it);}
+  });
+  const fi=$('#detfire');
+  if(fi)fi.addEventListener('click',function(){
+    det.classList.add('hidden');
+    if(typeof fireScroll==='function')fireScroll();
   });
   const ap=$('#detapply');
   if(ap)ap.addEventListener('click',function(){
@@ -133,17 +157,17 @@ function openDetail(it){
   });
   const rs=$('#detreset');
   if(rs)rs.addEventListener('click',function(){
-    if(resetCdForCoins(it)){det.classList.add('hidden');openInv();}
+    if(resetCdForCoins(it)){det.classList.add('hidden');}
   });
   $('#detdrop').addEventListener('click',function(){
     S.inv.splice(S.inv.indexOf(it),1);
     recalcMaxHp();
     toast('Выброшено: '+info.n);save();
-    det.classList.add('hidden');openInv();
+    det.classList.add('hidden');render();
   });
   $('#detclose').addEventListener('click',function(){det.classList.add('hidden');});
 }
 
 /* ===== Закрыть мешок =====
-   ↙️ Вызывается из: openInv (в этом же файле), engine_overlay_input.js */
+   ↙️ Вызывается из: engine_overlay_input.js, openInv (в этом же файле) */
 function closeInv(){$('#inv').classList.add('hidden');}

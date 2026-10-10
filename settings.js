@@ -1,8 +1,8 @@
 // settings.js
-// v2.1.16 -> v2.1.17
+// v2.1.17 -> v2.1.18
 // Проект: GameBook1
-// Функция: настройки игры (размер шрифта, размер карт, рубашки карт, знаки, осколки, рестарт) + профиль + иконки валют + диалоги осколков, золота, знаков + реклама + автопрокрутка текста + начисление тайных символов
-// Изменение: убраны все тестовые надписи и автоначисление 1000 осколков при первом запуске. Новый профиль начинается с 0 осколков. Добавлена функция window.awardMark — начисляет тайный символ за достижение один раз за всю жизнь профиля. Знаки выдаются из обёртки перехода на узел (см. engine_checkpoints_logic.js)
+// Функция: настройки игры + профиль + иконки валют + диалоги осколков, золота, знаков + реклама + автопрокрутка + начисление тайных символов + валюты в верхней панели
+// Изменение: MutationObserver удалён. Раньше он добавлял значки осколков и знаков в шапку окна мешка. Теперь мешка в HUD нет — валюты живут в верхней панели и наполняются функцией initHudCurrencies. Функции updateMarks и updateAdCoins теперь просто вызывают updateHudCurrencies — она обновляет все три валютных блока в HUD и одновременно обновляет номера в открытых диалогах
 
 (function(){
 const FZ=[1,1.15,1.3,1.5,1.7];
@@ -129,7 +129,7 @@ function spendAdCoins(n){
 if(P.adcoins<n)return false;
 P.adcoins-=n;
 saveP();
-updateAdCoins();
+updateHudCurrencies();
 return true;
 }
 
@@ -147,7 +147,7 @@ css.textContent=':root{--fz:1;--cz:1}'
 +'#panel .foe div[style]{font-size:calc(13px*var(--fz))!important}'
 +'.heart{font-size:calc(33px*var(--fz))!important}'
 +'.badge{font-size:calc(13px*var(--fz))!important}'
-+'.purse .pl1,.purse .pl2{font-size:calc(13px*var(--fz))!important}'
++'.histbtn .pl1{font-size:calc(13px*var(--fz))!important}'
 +'.gold{font-size:calc(15px*var(--fz))!important}'
 +'.btn{font-size:calc(14px*var(--fz))!important}'
 +'.toast{font-size:calc(14px*var(--fz))!important}'
@@ -158,11 +158,6 @@ css.textContent=':root{--fz:1;--cz:1}'
 +'.ct>span{display:inline;text-align:center;line-height:1.25}'
 +'.cg{font-size:calc(10.5px*max(var(--fz),var(--cz)))!important;color:var(--ctag)!important}'
 +'.cardwrap .cn{width:calc(26px*var(--cz))!important;height:calc(26px*var(--cz))!important;font-size:calc(15px*var(--cz))!important}'
-/* ⚠️ Ширина карты ограничена сверху половиной ширины экрана минус отступы.
-   Это гарантирует, что на телефоне в ряд помещается минимум две карты,
-   даже если в настройках выбран большой размер карт (x1.5 или x2).
-   На широких экранах ограничение не действует: min() возвращает первое
-   выражение (базовую ширину с множителем), потому что оно меньше. */
 +'.card{width:min(calc(clamp(115px,19.8vw,151px)*var(--cz)*1.1),calc((100vw - 50px)/2))!important;padding-bottom:calc(10px + 22px*var(--cz))!important;background:var(--cbg)!important;border-color:var(--cbr)!important}'
 +'.card::before{border-color:var(--cb2)!important;background-image:radial-gradient(circle,var(--cdot) 1.4px,transparent 1.9px)!important;background-size:calc(13px*var(--cz))!important}'
 +'.card::after{content:var(--cglyph)!important;color:var(--cglyc)!important;font-size:calc(var(--cgfs)*var(--cz))!important;top:var(--cgtop)!important;left:var(--cgleft)!important;right:var(--cgright)!important;transform:var(--cgtr)!important}'
@@ -172,7 +167,6 @@ css.textContent=':root{--fz:1;--cz:1}'
 +'.sbtns{display:flex;gap:6px;flex-wrap:wrap;justify-content:center;align-items:center}'
 +'.sbtn.on{background:linear-gradient(#8fae62,#6d8c4a);border-color:#b8d494;color:#10160c}'
 +'.sbtn-val{display:inline-flex;align-items:center;justify-content:center;min-width:44px;padding:5px 10px;font-size:14px;color:#e8c76a;font-weight:700}'
-+'.marks{color:#e8c76a;font-weight:400}'
 +'.hint{font-size:11.5px;opacity:.7;margin:-4px 0 8px}'
 +'.srow.off{opacity:.35;pointer-events:none}'
 +'.sgroup{border:2px solid rgba(122,90,56,.55);border-radius:12px;padding:10px 12px 6px;margin:0 auto 14px auto;background:rgba(0,0,0,.18);width:fit-content;max-width:100%}'
@@ -200,11 +194,6 @@ try{localStorage.setItem('zl_set',JSON.stringify(st));}catch(e){}
 }
 
 /* ===== Деревянная шестерёнка для заголовка окна настроек =====
-   Форма — как у кнопки в верхней панели: восемь зубцов через 45 градусов,
-   тело круглое, крупное отверстие в центре. Заливка — деревянный градиент
-   от светлого тёплого коричневого сверху к тёмному снизу. Идентификатор
-   градиента уникален (gearWoodHeadG), чтобы не столкнуться с градиентом
-   шестерёнки в кнопке index.html.
    ↙️ Используется в: разметка окна настроек (в этом же файле) */
 function headerGearSVG(size){
 const s=size||24;
@@ -232,14 +221,13 @@ return '<svg viewBox="0 0 48 48" width="'+s+'" height="'+s+'" aria-hidden="true"
 +'</svg>';
 }
 
-/* Возвращает текущие настройки автопрокрутки.
-   mode: 0 — плавный, 1 — шаговый.
-   step: количество строк за один шаг (1–5).
+/* ===== Автопрокрутка =====
    ↙️ Используется в: engine_render_screen.js */
 window.getAutoSettings=function(){
   return {enabled:st.auto===1, speed:st.aspd, mode:st.mode, step:st.step};
 };
 
+/* ===== Реклама ===== */
 function showAd(onDone){
 let done=false;
 const fin=function(){if(!done){done=true;onDone();}};
@@ -259,6 +247,143 @@ setTimeout(fin,700);
 }
 window.showAdGame=showAd;
 
+/* ===== Валюты в верхней панели =====
+   Три кликабельных блока: золото, осколки, знаки. Каждый открывает свой
+   диалог. Функция наполняет контейнер #hudcoins один раз, при загрузке.
+   Значения обновляются через updateHudCurrencies.
+   ↘️ Обработчики диалогов — в этом же файле (openGoldDialog, openAdCoinDialog, openMarkDialog)
+   ↙️ Вызывается в конце файла */
+function initHudCurrencies(){
+  const box=document.getElementById('hudcoins');
+  if(!box)return;
+  if(box.dataset.built)return;
+  box.dataset.built='1';
+  box.innerHTML=''
+    +'<div class="pursewrap" id="hud_gold" title="Золото">'+goldIcon(20)+'<span class="purse-n" id="hud_gold_v">'+((typeof S!=='undefined'&&S)?S.gold:0)+'</span></div>'
+    +'<div class="pursewrap" id="hud_adcoins" title="Осколки">'+adIcon(20)+'<span class="purse-n" id="hud_adcoins_v">'+P.adcoins+'</span></div>'
+    +'<div class="pursewrap" id="hud_marks" title="Тайные знаки">'+markIcon(20)+'<span class="purse-n" id="hud_marks_v">'+P.marks+'</span></div>';
+  box.querySelector('#hud_gold').addEventListener('click',openGoldDialog);
+  box.querySelector('#hud_adcoins').addEventListener('click',openAdCoinDialog);
+  box.querySelector('#hud_marks').addEventListener('click',openMarkDialog);
+}
+
+/* ===== Обновление валют в верхней панели =====
+   Вызывается после любого изменения золота, осколков или знаков.
+   Заодно обновляет номера внутри открытых диалогов (если они есть).
+   ↙️ Используется в: engine_state_hud.js (hud), cardbacks.js, engine_checkpoints_logic.js, engine_render_inventory.js, engine_render_quickbar.js, а также при покупке в этом файле */
+function updateHudCurrencies(){
+  const g=document.getElementById('hud_gold_v');
+  if(g)g.textContent=(typeof S!=='undefined'&&S)?S.gold:0;
+  const a=document.getElementById('hud_adcoins_v');
+  if(a)a.textContent=P.adcoins;
+  const m=document.getElementById('hud_marks_v');
+  if(m)m.textContent=P.marks;
+  const adn=document.getElementById('adcnum');
+  if(adn)adn.textContent=P.adcoins;
+  const gd=document.getElementById('goldnum');
+  if(gd)gd.textContent=(typeof S!=='undefined'&&S)?S.gold:0;
+}
+window.updateHudCurrencies=updateHudCurrencies;
+
+/* ===== Диалог осколков =====
+   Открывается кликом по осколкам в верхней панели.
+   ↙️ Обработчик клика — в: initHudCurrencies (в этом же файле) */
+function openAdCoinDialog(){
+const old=document.getElementById('adcoinov');
+if(old&&old.parentNode)old.parentNode.removeChild(old);
+const ov2=document.createElement('div');
+ov2.className='ovl';ov2.id='adcoinov';
+ov2.innerHTML='<div class="invbox detbox"><h3 style="display:flex;align-items:center;justify-content:center;gap:8px">Осколок '+adIcon(26)+' <b id="adcnum" class="purse-n">'+P.adcoins+'</b></h3>'
++'<div class="adchint">Осколки даются за просмотр рекламы.</div>'
++'<button class="btn adbtn" id="ad_get"><span>Реклама +1</span>'+adIcon(18)+'</button>'
++'<button class="btn adbtn" id="ad_close1">Закрыть</button>'
++'</div>';
+document.body.appendChild(ov2);
+ov2.querySelector('#ad_get').addEventListener('click',function(){
+showAd(function(){P.adcoins+=1;saveP();updateHudCurrencies();toast('Получено: +1 осколок');});
+});
+ov2.querySelector('#ad_close1').addEventListener('click',function(){
+if(ov2.parentNode)document.body.removeChild(ov2);
+});
+ov2.addEventListener('click',function(e){if(e.target===ov2&&ov2.parentNode)document.body.removeChild(ov2);});
+}
+
+/* ===== Диалог золота =====
+   Открывается кликом по золоту в верхней панели.
+   ↙️ Обработчик клика — в: initHudCurrencies (в этом же файле) */
+function openGoldDialog(){
+const old=document.getElementById('goldov');
+if(old&&old.parentNode)old.parentNode.removeChild(old);
+const ov3=document.createElement('div');
+ov3.className='ovl';ov3.id='goldov';
+
+function packBtn(goldAmt, coinCost){
+  return '<button class="btn adbtn goldpack" data-gold="'+goldAmt+'" data-cost="'+coinCost+'">'
+    +'<span>'+goldIcon(22)+' '+goldAmt+' = '+coinCost+' '+adIcon(18)+'</span>'
+    +'</button>';
+}
+
+ov3.innerHTML='<div class="invbox detbox">'
+  +'<h3 style="display:flex;align-items:center;justify-content:center;gap:8px">Ваше золото '+goldIcon(28)+' <b id="goldnum" class="purse-n">'+S.gold+'</b></h3>'
+  +'<div class="adchint">Золото можно получить<br>в процессе прохождения игры.</div>'
+  +'<div class="adchint" style="margin-top:-4px">Или получить за осколки:</div>'
+  +packBtn(1,10)
+  +packBtn(5,50)
+  +packBtn(10,100)
+  +'<div style="text-align:center;margin-top:8px"><button class="btn" id="gold_close">Закрыть</button></div>'
+  +'</div>';
+
+document.body.appendChild(ov3);
+
+ov3.querySelectorAll('.goldpack').forEach(function(btn){
+  btn.addEventListener('click',function(){
+    const goldAmt=parseInt(btn.getAttribute('data-gold'),10);
+    const cost=parseInt(btn.getAttribute('data-cost'),10);
+    if(P.adcoins<cost){toast('Не хватает осколков: нужно '+cost+', у вас '+P.adcoins);return;}
+    function doBuy(){
+      if(typeof window.spendAdCoins!=='function'||!window.spendAdCoins(cost)){
+        toast('Не удалось списать осколки');return;
+      }
+      S.gold+=goldAmt;
+      save();
+      updateHudCurrencies();
+      toast('Обмен: '+cost+' осколков → '+goldAmt+' золота');
+    }
+    const name=goldAmt+' золота';
+    if(typeof window.confirmBuy==='function'){
+      window.confirmBuy(name, cost, doBuy);
+    }else{
+      doBuy();
+    }
+  });
+});
+
+ov3.querySelector('#gold_close').addEventListener('click',function(){
+if(ov3.parentNode)document.body.removeChild(ov3);
+});
+ov3.addEventListener('click',function(e){if(e.target===ov3&&ov3.parentNode)document.body.removeChild(ov3);});
+}
+
+/* ===== Диалог тайных знаков =====
+   Открывается кликом по знакам в верхней панели.
+   ↙️ Обработчик клика — в: initHudCurrencies (в этом же файле) */
+function openMarkDialog(){
+const old=document.getElementById('markov');
+if(old&&old.parentNode)old.parentNode.removeChild(old);
+const ov4=document.createElement('div');
+ov4.className='ovl';ov4.id='markov';
+ov4.innerHTML='<div class="invbox detbox"><h3>Тайный символ</h3>'
++'<div style="text-align:center;margin:4px 0 10px">'+markIcon(56)+'</div>'
++'<div class="adchint">Можно получить только пройдя<div class="hgap"></div>ключевые сюжетные линии</div>'
++'<div style="text-align:center;margin-top:10px"><button class="btn" id="mark_close">Закрыть</button></div></div>';
+document.body.appendChild(ov4);
+ov4.querySelector('#mark_close').addEventListener('click',function(){
+if(ov4.parentNode)document.body.removeChild(ov4);
+});
+ov4.addEventListener('click',function(e){if(e.target===ov4&&ov4.parentNode)document.body.removeChild(ov4);});
+}
+
+/* ===== Окно настроек ===== */
 const ov=document.createElement('div');
 ov.className='ovl hidden';ov.id='set';
 ov.innerHTML='<div class="invbox"><div class="settitle">'+headerGearSVG(26)+'<span>Настройки</span>'+headerGearSVG(26)+'</div>'
@@ -295,143 +420,6 @@ ov.innerHTML='<div class="invbox"><div class="settitle">'+headerGearSVG(26)+'<sp
 +'<div style="text-align:center;margin-top:10px"><button class="btn" id="setc">Закрыть</button></div>'
 +(typeof window.openItemGallery==='function'?'<div style="text-align:center;margin-top:8px"><button class="btn" id="itgbtn">Предметы</button></div>':'')+'</div>';
 document.body.appendChild(ov);
-
-function updateMarks(){
-const mb=document.querySelector('.marks-box');
-if(mb)mb.innerHTML=markIcon(26)+' <span class="purse-n">'+P.marks+'</span>';
-}
-function updateAdCoins(){
-const ab=document.querySelector('.adcoins-box');
-if(ab)ab.innerHTML=adIcon(26)+' <span class="purse-n">'+P.adcoins+'</span>';
-const n=document.getElementById('adcnum');
-if(n)n.textContent=P.adcoins;
-const gn=document.getElementById('goldcoins');
-if(gn)gn.textContent=P.adcoins;
-}
-
-function openAdCoinDialog(){
-const old=document.getElementById('adcoinov');
-if(old&&old.parentNode)old.parentNode.removeChild(old);
-const ov2=document.createElement('div');
-ov2.className='ovl';ov2.id='adcoinov';
-ov2.innerHTML='<div class="invbox detbox"><h3 style="display:flex;align-items:center;justify-content:center;gap:8px">Осколок '+adIcon(26)+' <b id="adcnum" class="purse-n">'+P.adcoins+'</b></h3>'
-+'<div class="adchint">Осколки даются за просмотр рекламы.</div>'
-+'<button class="btn adbtn" id="ad_get"><span>Реклама +1</span>'+adIcon(18)+'</button>'
-+'<button class="btn adbtn" id="ad_close1">Закрыть</button>'
-+'</div>';
-document.body.appendChild(ov2);
-ov2.querySelector('#ad_get').addEventListener('click',function(){
-showAd(function(){P.adcoins+=1;saveP();updateAdCoins();toast('Получено: +1 осколок');});
-});
-ov2.querySelector('#ad_close1').addEventListener('click',function(){
-if(ov2.parentNode)document.body.removeChild(ov2);
-});
-ov2.addEventListener('click',function(e){if(e.target===ov2&&ov2.parentNode)document.body.removeChild(ov2);});
-}
-
-function openGoldDialog(){
-const old=document.getElementById('goldov');
-if(old&&old.parentNode)old.parentNode.removeChild(old);
-const ov3=document.createElement('div');
-ov3.className='ovl';ov3.id='goldov';
-
-function packBtn(goldAmt, coinCost){
-  return '<button class="btn adbtn goldpack" data-gold="'+goldAmt+'" data-cost="'+coinCost+'">'
-    +'<span>'+goldIcon(22)+' '+goldAmt+' = '+coinCost+' '+adIcon(18)+'</span>'
-    +'</button>';
-}
-
-ov3.innerHTML='<div class="invbox detbox">'
-  +'<h3 style="display:flex;align-items:center;justify-content:center;gap:8px">Ваше золото '+goldIcon(28)+' <b id="goldnum" class="purse-n">'+S.gold+'</b></h3>'
-  +'<div class="adchint">Золото можно получить<br>в процессе прохождения игры.</div>'
-  +'<div class="adchint" style="margin-top:-4px">Или получить за осколки:</div>'
-  +packBtn(1,10)
-  +packBtn(5,50)
-  +packBtn(10,100)
-  +'<div style="text-align:center;margin-top:8px"><button class="btn" id="gold_close">Закрыть</button></div>'
-  +'</div>';
-
-document.body.appendChild(ov3);
-
-ov3.querySelectorAll('.goldpack').forEach(function(btn){
-  btn.addEventListener('click',function(){
-    const goldAmt=parseInt(btn.getAttribute('data-gold'),10);
-    const cost=parseInt(btn.getAttribute('data-cost'),10);
-    if(P.adcoins<cost){toast('Не хватает осколков: нужно '+cost+', у вас '+P.adcoins);return;}
-    function doBuy(){
-      if(typeof window.spendAdCoins!=='function'||!window.spendAdCoins(cost)){
-        toast('Не удалось списать осколки');return;
-      }
-      S.gold+=goldAmt;
-      save();
-      const pn=document.querySelector('#invbox .pursewrap:not(.marks-box):not(.adcoins-box) .purse-n');
-      if(pn)pn.textContent=S.gold;
-      const gn=document.getElementById('goldnum');
-      if(gn)gn.textContent=S.gold;
-      toast('Обмен: '+cost+' осколков → '+goldAmt+' золота');
-    }
-    const name=goldAmt+' золота';
-    if(typeof window.confirmBuy==='function'){
-      window.confirmBuy(name, cost, doBuy);
-    }else{
-      doBuy();
-    }
-  });
-});
-
-ov3.querySelector('#gold_close').addEventListener('click',function(){
-if(ov3.parentNode)document.body.removeChild(ov3);
-});
-ov3.addEventListener('click',function(e){if(e.target===ov3&&ov3.parentNode)document.body.removeChild(ov3);});
-}
-
-function openMarkDialog(){
-const old=document.getElementById('markov');
-if(old&&old.parentNode)old.parentNode.removeChild(old);
-const ov4=document.createElement('div');
-ov4.className='ovl';ov4.id='markov';
-ov4.innerHTML='<div class="invbox detbox"><h3>Тайный символ</h3>'
-+'<div style="text-align:center;margin:4px 0 10px">'+markIcon(56)+'</div>'
-+'<div class="adchint">Можно получить только пройдя<div class="hgap"></div>ключевые сюжетные линии</div>'
-+'<div style="text-align:center;margin-top:10px"><button class="btn" id="mark_close">Закрыть</button></div></div>';
-document.body.appendChild(ov4);
-ov4.querySelector('#mark_close').addEventListener('click',function(){
-if(ov4.parentNode)document.body.removeChild(ov4);
-});
-ov4.addEventListener('click',function(e){if(e.target===ov4&&ov4.parentNode)document.body.removeChild(ov4);});
-}
-
-const mo=new MutationObserver(function(){
-const invbox=document.getElementById('invbox');
-if(invbox&&!invbox.querySelector('.marks-box')){
-const head=invbox.querySelector('.invhead');
-const adbox=document.createElement('div');
-adbox.className='adcoins-box pursewrap';
-adbox.title='Осколки';
-adbox.innerHTML=adIcon(26)+' <span class="purse-n">'+P.adcoins+'</span>';
-adbox.addEventListener('click',openAdCoinDialog);
-const mbox=document.createElement('div');
-mbox.className='marks-box pursewrap';
-mbox.innerHTML=markIcon(26)+' <span class="purse-n">'+P.marks+'</span>';
-mbox.addEventListener('click',openMarkDialog);
-const purse=head?head.querySelector('.pursewrap:not(.marks-box):not(.adcoins-box)'):null;
-if(purse)purse.addEventListener('click',openGoldDialog);
-if(head&&purse&&purse.parentNode){
-purse.parentNode.insertBefore(mbox,purse.nextSibling);
-purse.parentNode.insertBefore(adbox,mbox);
-}else if(head){
-head.appendChild(adbox);
-head.appendChild(mbox);
-}else{
-const bag=invbox.querySelector('.invh-bag')||invbox.querySelector('.pursewrap');
-if(bag&&bag.parentNode){
-bag.parentNode.insertBefore(mbox,bag.nextSibling);
-bag.parentNode.insertBefore(adbox,mbox);
-}
-}
-}
-});
-mo.observe(document.body,{childList:true,subtree:true});
 
 function fmtAspd(v){
 return v.toFixed(1).replace('.',',');
@@ -533,28 +521,35 @@ if(typeof window.openItemGallery==='function'){window.openItemGallery();}
    Знак выдаётся один раз за всю жизнь профиля. Если за это достижение
    игрок уже получал знак — функция ничего не делает.
    Отметки о выданных знаках хранятся в P.marksGiven (объект вида id→1).
-   Функция вызывается из обёртки перехода на узел (engine_checkpoints_logic.js)
-   при заходе на узлы завершения глав и при наличии сюжетных флагов.
    ↗️ Вызывается из: engine_checkpoints_logic.js (обёртка go)
-   ↙️ Связано с: P.marksGiven (отметки выданных достижений), updateMarks */
+   ↙️ Обновляет HUD через updateHudCurrencies */
 window.awardMark=function(id,title){
   if(!P.marksGiven)P.marksGiven={};
   if(P.marksGiven[id])return false;
   P.marksGiven[id]=1;
   P.marks++;
   saveP();
-  if(typeof updateMarks==='function')updateMarks();
+  updateHudCurrencies();
   if(typeof toast==='function')toast('Тайный символ! '+(title||''));
   return true;
 };
 
+/* Старые имена функций сохранены для совместимости — они теперь вызывают
+   updateHudCurrencies. Так код в cardbacks.js, engine_render_inventory.js,
+   engine_render_quickbar.js и engine_checkpoints_logic.js продолжает работать
+   без изменений. */
+window.updateMarks=function(){updateHudCurrencies();};
+window.updateAdCoins=function(){updateHudCurrencies();};
+
 window.markIcon=markIcon;
 window.adIcon=adIcon;
 window.goldIcon=goldIcon;
-window.updateMarks=updateMarks;
-window.updateAdCoins=updateAdCoins;
 window.getAdCoins=getAdCoins;
 window.spendAdCoins=spendAdCoins;
 
+/* ===== Инициализация ===== */
 apply();
+initHudCurrencies();
+/* Если игра уже запущена (S есть) — сразу проставим актуальные значения. */
+updateHudCurrencies();
 })();
