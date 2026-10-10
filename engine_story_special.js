@@ -1,8 +1,8 @@
 // engine_story_special.js
-// v1.1.8
+// v1.1.8 -> v1.1.9
 // Проект: GameBook1
 // Функция: специальные сцены и обработка выбора карты — отдых, сон, урон, рестарт, конец главы, возврат к чекпоинту, бросок стартового предмета, галерея стартовых, покупка, финализация карты, главный обработчик выбора
-// Изменение: удалена лишняя первая строка с обратными кавычками и словом javascript, которая попала в файл по ошибке и ломала парсинг всего файла (SyntaxError: Unexpected end of input)
+// Изменение: окно результата броска кубика переведено на новую функцию showRollResult (из engine_state_dialogs.js). Теперь при броске показывается лежащий кубик с выпавшей гранью, крупный заголовок «УСПЕХ»/«НЕУДАЧА» и цветная рамка. Раньше был просто текст без оформления
 
 'use strict';
 
@@ -169,13 +169,13 @@ function _itemIconHTML(itemId,width){
 }
 
 /* ===== Показать окно с исходом броска и перейти дальше =====
-   Открывает окно с текстом исхода и кнопкой «Далее». Пока игрок не нажмёт —
-   переход не выполняется. Это даёт игроку время прочитать, что произошло.
-   Если игра недоступна или окно не открылось — переход выполняется сразу.
-   ↗️ showInfo — в: engine_state_dialogs.js
+   Открывает окно с лежащим кубиком (грань — выпавшее число), крупным
+   заголовком «УСПЕХ»/«НЕУДАЧА»/«НИЧЬЯ» и цветной рамкой. Пока игрок
+   не нажмёт «Далее» — переход не выполняется.
+   ↗️ showRollResult — в: engine_state_dialogs.js
    ↗️ showCheckpointChoice — в: engine_checkpoints_logic.js
    ↙️ Используется в: play (в этом же файле) */
-function _showRollOutcome(text,nextNode){
+function _showRollOutcome(text,nextNode,outcome,diceValue){
   const proceed=function(){
     if(S.hp<=0){
       if(typeof showCheckpointChoice==='function')showCheckpointChoice();
@@ -187,7 +187,9 @@ function _showRollOutcome(text,nextNode){
       go(nextNode);
     }
   };
-  if(typeof window.showInfo==='function'){
+  if(typeof window.showRollResult==='function'){
+    window.showRollResult({outcome:outcome||'tie',dice:diceValue||1,text:text},proceed);
+  }else if(typeof window.showInfo==='function'){
     window.showInfo(text,proceed);
   }else{
     proceed();
@@ -294,7 +296,7 @@ function play(c){
       }else if(bagFull){
         text+='<div class="hgap"></div><b>Мешок полон — '+ITEMS[item].n+' остаётся в нише</b>';
       }
-      _showRollOutcome(text,target);
+      _showRollOutcome(text,target,outcome,v);
     },outcome,diceMsg);
     return;
   }
@@ -318,7 +320,7 @@ function play(c){
       }else{
         text='<b>Бросок '+v+' — неудача.</b><div class="hgap"></div><b>−1 сердце</b>';
       }
-      _showRollOutcome(text,ok?okNode:failNode);
+      _showRollOutcome(text,ok?okNode:failNode,outcome,v);
     },outcome,diceMsg);
     return;
   }
@@ -347,7 +349,7 @@ function play(c){
       }else{
         text='<b>Бросок '+v+' — неудача.</b><div class="hgap"></div><b>−1 сердце</b>';
       }
-      _showRollOutcome(text,null);
+      _showRollOutcome(text,null,outcome,v);
     },outcome,diceMsg);
     return;
   }
@@ -382,7 +384,7 @@ function play(c){
       }else{
         text='<b>Бросок '+v+' — неудача.</b><div class="hgap"></div><b>−1 сердце</b>';
       }
-      _showRollOutcome(text,ok?winNode:failNode);
+      _showRollOutcome(text,ok?winNode:failNode,outcome,v);
     },outcome,diceMsg);
     return;
   }
