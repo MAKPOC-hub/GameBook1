@@ -1,8 +1,8 @@
 /* style.css */
-/* v2.5.0 -> v2.5.1 */
+/* v2.5.1 -> v2.5.2 */
 /* Проект: GameBook1 */
 /* Функция: оформление игры (ХАД, панель текста, карты, оверлеи, анимации, панель быстрого доступа, галерея стартовых предметов) */
-/* Изменение: в мобильной верхней панели название локации теперь занимает ровно столько места, сколько нужно тексту, а не растягивается на четверть ширины, как остальные кнопки. Первая колонка сетки стала auto (по содержимому), три остальные — равные между собой (1fr каждая). Промежутки между всеми кнопками остались одинаковыми */
+/* Изменение: стрелки прокрутки вверх и вниз (маленькие кнопки со стрелочками по центру блока текста) вынесены за пределы самого текста. Раньше они лежали поверх текста — узел с текстом обрезался сверху и снизу. Теперь у блока текста добавлены вертикальные отступы, и стрелки находятся в этих отступах: они не касаются текста. Значок автопрокрутки перенесён в правый нижний угол блока текста (см. engine_render_screen.js) */
 :root{--wood:#5b422a;--wood2:#7a5a38;--parch:#f0e2c4;--ink:#2f2417;--gold:#e8c76a}
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{height:100%}
@@ -66,7 +66,13 @@ body{font-family:Georgia,'Times New Roman',serif;background:#0c110b;color:#efe6d
   text-align:center;
 }
 @keyframes tin{from{opacity:0;transform:translateY(6px)}to{opacity:1}}
-.txtscroll{position:relative}
+/* ===== Обёртка текста =====
+   Верхний и нижний отступы заданы так, чтобы стрелки прокрутки и значок
+   автопрокрутки помещались в этих отступах и не наезжали на текст.
+   Сверху 28px — хватает для стрелки вверх (высота 22px).
+   Снизу 34px — хватает для стрелки вниз (высота 22px) и для кнопки
+   автопрокрутки (высота 32px). */
+.txtscroll{position:relative;padding:28px 0 34px}
 #ptxt{
   max-height:calc(1.55em * 6);
   overflow-y:auto;
@@ -103,8 +109,8 @@ body{font-family:Georgia,'Times New Roman',serif;background:#0c110b;color:#efe6d
 }
 .scrollhint.on{opacity:1;pointer-events:auto}
 .scrollhint:hover{background:rgba(40,52,30,.95);color:#fff3cf;border-color:#b8d494}
-.scrollhint.top{top:-4px}
-.scrollhint.bottom{bottom:-4px}
+.scrollhint.top{top:0}
+.scrollhint.bottom{bottom:0}
 .scrollhint svg{display:block}
 .para{position:absolute;right:12px;bottom:6px;margin:0;font-size:11px;opacity:.45;letter-spacing:2px}
 .title{font-size:clamp(26px,6vw,44px);text-align:center;letter-spacing:6px;color:#f3e6c0;text-shadow:0 2px 10px #000,0 0 24px rgba(120,180,90,.35);margin:6px 0 2px;font-variant:small-caps}
@@ -313,13 +319,10 @@ body{font-family:Georgia,'Times New Roman',serif;background:#0c110b;color:#efe6d
     font-size:13px;
   }
   .hud-l,.hud-c,.hud-r{display:contents}
-  /* Название локации — по размеру текста, не растягивается. */
   #statb{grid-area:stat;justify-self:start;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:11px;padding:4px 10px}
-  /* Три кнопки справа — растянуты на равные ячейки. */
   #histb{grid-area:hist;justify-self:stretch;padding:4px 6px;min-height:42px}
   #bagb{grid-area:bag;justify-self:stretch;padding:4px 6px;min-height:42px}
   #setb{grid-area:set;justify-self:stretch;padding:2px;min-height:42px;min-width:0}
-  /* Сердца — во второй строке, по центру. */
   #hearts{grid-area:heart;justify-self:center;display:flex;align-items:center;justify-content:center;padding:2px 0}
 
   #bagb .pl1{display:none}

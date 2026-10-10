@@ -1,8 +1,8 @@
 // engine_render_screen.js
-// v1.0.15 -> v1.0.16
+// v1.0.16 -> v1.0.17
 // Проект: GameBook1
 // Функция: главный экран и экран боя — отрисовка текущего узла или текущего боя, автопрокрутка текста
-// Изменение: длительность плавного движения внутри одного шага возвращена с 2000 на 1000 миллисекунд. Базовая длительность паузы между шагами остаётся удвоенной (1600 мс на строку)
+// Изменение: кнопка автопрокрутки перенесена из правого верхнего угла блока текста в правый нижний угол. Раньше она стояла вверху справа (top:0;right:0), теперь стоит внизу справа (bottom:0;right:0) — рядом с нижней стрелкой прокрутки, но не поверх неё (стрелка по центру, кнопка справа)
 
 'use strict';
 
@@ -17,7 +17,7 @@ let _autoPauseTimer=null;
   const st=document.createElement('style');
   st.id='zl-auto-styles';
   st.textContent=
-  '.autoscroll-btn{position:absolute;top:0;right:0;z-index:8;width:32px;height:32px;display:flex;align-items:center;justify-content:center;border-radius:8px;background:rgba(20,28,16,.92);border:1px solid #8a6a44;color:#e8c76a;cursor:pointer;user-select:none;box-shadow:0 2px 6px rgba(0,0,0,.55);transition:background .15s,color .15s,border-color .15s}'
+  '.autoscroll-btn{position:absolute;bottom:0;right:0;z-index:8;width:32px;height:32px;display:flex;align-items:center;justify-content:center;border-radius:8px;background:rgba(20,28,16,.92);border:1px solid #8a6a44;color:#e8c76a;cursor:pointer;user-select:none;box-shadow:0 2px 6px rgba(0,0,0,.55);transition:background .15s,color .15s,border-color .15s}'
   +'.autoscroll-btn:hover{background:rgba(40,52,30,.95);color:#fff3cf;border-color:#b8d494}'
   +'.autoscroll-btn.off{color:#6a6a5a;background:rgba(20,28,16,.55);border-color:#4a4a3a}'
   +'.autoscroll-btn.off:hover{color:#a8a89a;border-color:#6a6a5a}'
