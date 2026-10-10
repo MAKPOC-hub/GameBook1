@@ -1,8 +1,8 @@
 // engine_state_dialogs.js
-// v1.0.2 -> v1.0.3
+// v1.0.3 -> v1.0.4
 // Проект: GameBook1
-// Функция: универсальные модальные окна — подтверждение покупки, информационное окно, окно «Мешок полон», окно принудительной выдачи ключевого предмета, окно результата броска с кубиком
-// Изменение: добавлена функция showRollResult — окно результата броска кубика. Показывает лежащий кубик с выпавшей гранью вверх, крупный заголовок «УСПЕХ»/«НЕУДАЧА»/«НИЧЬЯ» и цветную рамку (зелёную, красную или жёлтую). Раньше результат броска показывался простой строкой текста без оформления
+// Функция: универсальные модальные окна — подтверждение покупки, информационное окно, окно «Мешок полон», окно принудительной выдачи ключевого предмета, окно результата броска с кубиком, окно результата находки
+// Изменение: добавлена функция showPickupResult — окно, которое показывает, какие предметы из находки поместились в мешок, а какие нет. Раньше непоместившийся предмет обозначался коротким всплывающим сообщением, которое исчезало через 2 секунды и легко пропускалось. Теперь это отдельное окно с кнопкой «Далее» — игрок обязательно увидит, что было получено, а что осталось
 
 'use strict';
 
@@ -36,14 +36,6 @@ function _rollDiceFaceSVG(value){
   };
   const v=Math.max(1,Math.min(6,parseInt(value,10)||1));
   const arr=dots[v];
-  /* Проекция точек верхней грани.
-     Верхняя грань — ромб с углами (50,25) вверху, (85,45) справа,
-     (50,65) внизу, (15,45) слева. Локальные координаты точки (u,v)
-     в диапазоне от -1 до +1 раскладываются так:
-     screenX = 50 + (u − v) * 17.5
-     screenY = 45 + (u + v) * 10
-     Точки на грани масштабированы в диапазон -0.55 .. +0.55, чтобы
-     не прилипали к самому краю. */
   const scale=0.55;
   let dotsSvg='';
   arr.forEach(function(d){
@@ -54,17 +46,11 @@ function _rollDiceFaceSVG(value){
     dotsSvg+='<circle cx="'+sx.toFixed(1)+'" cy="'+sy.toFixed(1)+'" r="2.6" fill="#2f2417"/>';
   });
   return '<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">'
-    /* тень под кубиком */
     +'<ellipse cx="50" cy="87" rx="40" ry="6" fill="rgba(0,0,0,.45)"/>'
-    /* левая боковая грань (светлая) */
     +'<polygon points="15,45 50,65 50,86 15,66" fill="#d9c08a" stroke="#5b422a" stroke-width="1.5" stroke-linejoin="round"/>'
-    /* правая боковая грань (тёмная) */
     +'<polygon points="50,65 85,45 85,66 50,86" fill="#a88a55" stroke="#5b422a" stroke-width="1.5" stroke-linejoin="round"/>'
-    /* верхняя грань */
     +'<polygon points="50,25 85,45 50,65 15,45" fill="#f7ead0" stroke="#5b422a" stroke-width="1.5" stroke-linejoin="round"/>'
-    /* рёбра внутри верхней грани (намёк на фаску) */
     +'<polygon points="50,29 81,45 50,61 19,45" fill="none" stroke="#c8a868" stroke-width=".8" opacity=".6"/>'
-    /* точки */
     +dotsSvg
     +'</svg>';
 }
@@ -73,11 +59,6 @@ function _rollDiceFaceSVG(value){
    Показывает лежащий кубик с выпавшей гранью, крупный заголовок
    «УСПЕХ» / «НЕУДАЧА» / «НИЧЬЯ» и текст исхода. Рамка окна окрашена
    по результату: зелёная, красная или жёлтая.
-   Опции:
-   outcome — 'win' | 'lose' | 'tie'
-   dice    — число от 1 до 6
-   text    — HTML с текстом исхода
-   onClose — что вызвать после нажатия «Далее»
    ↙️ Используется в: engine_story_special.js (_showRollOutcome) */
 function showRollResult(opts,onClose){
   const old=document.getElementById('rollresult');
@@ -109,6 +90,67 @@ function showRollResult(opts,onClose){
      осознанно нажать «Далее», иначе он не увидит текст исхода. */
 }
 window.showRollResult=showRollResult;
+
+/* ===== Окно результата находки =====
+   Показывается после того, как игрок взял предметы из узла. В верхней
+   части — то, что поместилось в мешок. В нижней (если есть) — то, что
+   не поместилось: такие предметы остаются на месте и не переходят
+   к игроку. Игрок нажимает «Далее», чтобы продолжить путь.
+   ↘️ Альтернатива, когда совсем нет места: showBagFullDialog (в этом же файле)
+   ↙️ Используется в: engine_story_special.js (play — блок c.pick) */
+function showPickupResult(gotItems,lostItems,onClose){
+  const old=document.getElementById('pickupresult');
+  if(old&&old.parentNode)old.parentNode.removeChild(old);
+  const ov=document.createElement('div');
+  ov.className='ovl';ov.id='pickupresult';
+
+  function _itemCardHTML(id,opacity){
+    const info=ITEMS[id]||{n:String(id)};
+    const a=(window.ItemCards&&typeof window.ItemCards.get==='function')?window.ItemCards.get(id):null;
+    let inner='';
+    if(a){
+      inner='<div class="gbp" style="--cbg:'+a.bg+';--cbr:'+a.br+'"><div class="gbp-art">'+a.art+'</div></div>';
+    }else{
+      inner='<div class="gbp"><div class="gbp-art" style="font-size:36px;color:#e9dfc5">'+info.n.charAt(0)+'</div></div>';
+    }
+    return '<div style="text-align:center;opacity:'+(opacity||1)+'">'
+      +inner
+      +'<div style="font-size:12px;color:#e9dfc5;margin-top:4px;line-height:1.2">'+info.n+'</div>'
+      +'</div>';
+  }
+  function _grid(items,opacity){
+    let h='<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(80px,1fr));gap:10px;margin:6px 0 10px">';
+    items.forEach(function(id){h+=_itemCardHTML(id,opacity);});
+    h+='</div>';
+    return h;
+  }
+
+  let body='<h3 style="margin-bottom:4px">Из мешка</h3>';
+  if(gotItems&&gotItems.length){
+    body+='<div style="text-align:center;font-size:14px;color:#c9e8a8;letter-spacing:1px;margin-top:6px">Получено</div>';
+    body+=_grid(gotItems,1);
+  }
+  if(lostItems&&lostItems.length){
+    body+='<div style="text-align:center;font-size:14px;color:#e8b0a0;letter-spacing:1px;margin-top:10px">Не поместилось</div>';
+    body+=_grid(lostItems,.55);
+    body+='<div style="text-align:center;font-size:12.5px;line-height:1.4;color:#e9dfc5;opacity:.8;margin:4px 0 8px">'
+      +'Эти предметы остались на месте. Освободите место в мешке или купите ячейку — и сможете забрать их в следующий раз.'
+      +'</div>';
+  }
+  body+='<div style="display:flex;justify-content:center;margin-top:14px">'
+    +'<button class="btn" id="pk_ok" style="background:linear-gradient(#8fae62,#6d8c4a);border-color:#b8d494;color:#10160c">Далее</button>'
+    +'</div>';
+
+  ov.innerHTML='<div class="invbox detbox" style="max-width:420px">'+body+'</div>';
+  document.body.appendChild(ov);
+  function close(){
+    if(ov.parentNode)ov.parentNode.removeChild(ov);
+    if(typeof onClose==='function')onClose();
+  }
+  ov.querySelector('#pk_ok').addEventListener('click',close);
+  /* Клик по фону не закрывает окно — игрок должен нажать «Далее». */
+}
+window.showPickupResult=showPickupResult;
 
 /* ===== Универсальный диалог подтверждения покупки =====
    ↗️ adIcon — в: settings.js
@@ -169,8 +211,8 @@ function showInfo(text, onClose){
 window.showInfo=showInfo;
 
 /* ===== Окно «Мешок полон» =====
-   Показывается, когда игрок получает предмет, но в мешке нет места.
-   Две кнопки:
+   Показывается, когда игрок получает предмет, но в мешке нет места совсем
+   (ни одного свободного слота). Две кнопки:
    — «Назад»: закрыть окно и остаться на текущем узле. Игрок может открыть
      мешок, купить ячейку, потом снова нажать карту находки.
    — «Продолжить»: закрыть окно и продолжить путь без предмета.
