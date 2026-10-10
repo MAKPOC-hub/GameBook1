@@ -1,8 +1,8 @@
 /* style.css */
-/* v2.4.9 -> v2.5.0 */
+/* v2.5.0 -> v2.5.1 */
 /* Проект: GameBook1 */
 /* Функция: оформление игры (ХАД, панель текста, карты, оверлеи, анимации, панель быстрого доступа, галерея стартовых предметов) */
-/* Изменение: в мобильной версии верхняя панель перестроена в два ряда. Первый ряд — четыре кнопки в равных ячейках: название локации, «История», «Мешок», «Настройки». Второй ряд — сердца по центру. Пробелы между всеми кнопками в верхнем ряду одинаковые (за это отвечает gap). Раньше было три ряда: локация и мешок сверху, история и настройки по бокам снизу, сердца в центре */
+/* Изменение: в мобильной верхней панели название локации теперь занимает ровно столько места, сколько нужно тексту, а не растягивается на четверть ширины, как остальные кнопки. Первая колонка сетки стала auto (по содержимому), три остальные — равные между собой (1fr каждая). Промежутки между всеми кнопками остались одинаковыми */
 :root{--wood:#5b422a;--wood2:#7a5a38;--parch:#f0e2c4;--ink:#2f2417;--gold:#e8c76a}
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{height:100%}
@@ -297,13 +297,14 @@ body{font-family:Georgia,'Times New Roman',serif;background:#0c110b;color:#efe6d
 #adcoinov,#goldov,#markov{z-index:46}
 
 /* ===== Адаптив: узкий экран (телефон) =====
-   Верхняя панель перестроена в два ряда.
-   Строка 1: локация · История · Мешок · Настройки — четыре равные ячейки.
-   Строка 2: сердца по центру, на всю ширину.
-   Пробелы между всеми кнопками в верхнем ряду одинаковые — за это отвечает gap. */
+   Верхняя панель — два ряда.
+   Строка 1: локация (по ширине текста) · История · Мешок · Настройки
+             (три кнопки справа — равные между собой).
+   Строка 2: сердца по центру.
+   Промежутки между всеми кнопками одинаковые — за это отвечает gap. */
 @media(max-width:640px){
   #hud{
-    grid-template-columns:1fr 1fr 1fr 1fr;
+    grid-template-columns:auto 1fr 1fr 1fr;
     grid-template-areas:
       "stat hist bag set"
       "heart heart heart heart";
@@ -312,10 +313,9 @@ body{font-family:Georgia,'Times New Roman',serif;background:#0c110b;color:#efe6d
     font-size:13px;
   }
   .hud-l,.hud-c,.hud-r{display:contents}
-  /* Все четыре кнопки верхнего ряда — растянуты на равную ширину
-     через justify-self:stretch, чтобы промежутки между ними были
-     одинаковыми. */
-  #statb{grid-area:stat;justify-self:stretch;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:11px;padding:4px 6px}
+  /* Название локации — по размеру текста, не растягивается. */
+  #statb{grid-area:stat;justify-self:start;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:11px;padding:4px 10px}
+  /* Три кнопки справа — растянуты на равные ячейки. */
   #histb{grid-area:hist;justify-self:stretch;padding:4px 6px;min-height:42px}
   #bagb{grid-area:bag;justify-self:stretch;padding:4px 6px;min-height:42px}
   #setb{grid-area:set;justify-self:stretch;padding:2px;min-height:42px;min-width:0}
