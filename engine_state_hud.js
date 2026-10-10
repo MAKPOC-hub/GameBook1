@@ -1,8 +1,8 @@
 // engine_state_hud.js
-// v1.0.0
+// v1.0.0 -> v1.0.1
 // Проект: GameBook1
-// Функция: отрисовка верхней панели — сердца, золото, надпись мешка, название локации
-// Изменение: файл создан — выделен из engine2.js (ХАД)
+// Функция: отрисовка верхней панели — сердца, золото, название локации
+// Изменение: убрано обновление надписи «Мешок» — кнопки мешка в верхней панели больше нет. Валюты (золото, осколки, знаки) обновляются из settings.js напрямую. Функция перерисовывает только сердца и название локации
 
 'use strict';
 
@@ -19,10 +19,8 @@ function hud(){
   }
   const heartsEl=$('#hearts');
   if(heartsEl)heartsEl.innerHTML=h;
-  const gv=$('#goldv');
-  if(gv)gv.textContent=S.gold;
-  const bl=$('#bagl');
-  if(bl)bl.textContent='Мешок '+S.inv.length+'/'+invMax();
   const sb=$('#statb');
   if(sb)sb.innerHTML=getLocationName(S.node);
+  /* Валюта обновляется отдельно — из settings.js. */
+  if(typeof window.updateHudCurrencies==='function')window.updateHudCurrencies();
 }

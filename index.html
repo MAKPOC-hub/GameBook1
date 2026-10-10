@@ -1,8 +1,8 @@
 <!-- index.html -->
-<!-- v2.6.5 -->
+<!-- v2.6.5 -> v2.6.6 -->
 <!-- Проект: GameBook1 -->
 <!-- Функция: разметка игры и подключение файлов -->
-<!-- Изменение: в заголовке окна браузера «книга-игра» заменено на «Игра-книга» -->
+<!-- Изменение: в верхней панели кнопка «Мешок» заменена на контейнер с тремя валютами (золото, осколки, тайные знаки). Мешок теперь открывается только программно — при переполнении. Валюты видны всегда, клик по каждой открывает свой диалог -->
 
 <!DOCTYPE html>
 <html lang="ru">
@@ -30,29 +30,7 @@
 </div>
 <div class="hud-c"><span id="hearts"></span></div>
 <div class="hud-r">
-<button class="purse" id="bagb" title="Мешок">
-<svg viewBox="0 0 32 32" width="24" height="24" aria-hidden="true">
-<defs>
-<linearGradient id="bagBodyG" x1="0" y1="0" x2="1" y2="1">
-<stop offset="0" stop-color="#c9a06a"/>
-<stop offset="0.5" stop-color="#a0764a"/>
-<stop offset="1" stop-color="#6b4a2a"/>
-</linearGradient>
-<linearGradient id="bagTopG" x1="0" y1="0" x2="0" y2="1">
-<stop offset="0" stop-color="#d9b888"/>
-<stop offset="1" stop-color="#a0764a"/>
-</linearGradient>
-</defs>
-<path d="M8 16 Q3 22 5 27 Q10 31 16 31 Q22 31 27 27 Q29 22 24 16 Q20 13 16 13 Q12 13 8 16 Z" fill="url(#bagBodyG)" stroke="#3a2410" stroke-width="1.3"/>
-<path d="M10 13 Q11 8 14 7 Q13 6 12 5 Q14 3 16 5 Q18 3 20 5 Q19 6 18 7 Q21 8 22 13 Q19 11 16 11 Q13 11 10 13 Z" fill="url(#bagTopG)" stroke="#3a2410" stroke-width="1.2"/>
-<path d="M11 7 L9 5" stroke="#a0764a" stroke-width="2" stroke-linecap="round"/>
-<path d="M21 7 L23 5" stroke="#a0764a" stroke-width="2" stroke-linecap="round"/>
-<path d="M11 19 Q13 23 12 28" fill="none" stroke="#3a2410" stroke-width="0.6" opacity="0.55"/>
-<path d="M21 19 Q19 23 20 28" fill="none" stroke="#3a2410" stroke-width="0.6" opacity="0.55"/>
-<ellipse cx="12" cy="22" rx="2" ry="4" fill="#ffffff" opacity="0.18"/>
-</svg>
-<span class="pl1">Мешок</span>
-</button>
+<div class="hudcoins" id="hudcoins"></div>
 <button class="gearbtn" id="setb" title="Настройки">
 <svg viewBox="0 0 48 48" width="34" height="34" aria-hidden="true">
 <defs>

@@ -1,16 +1,15 @@
 // engine_render_quickbar.js
-// v1.0.1 -> v1.0.2
+// v1.0.2 -> v1.0.3
 // Проект: GameBook1
-// Функция: панель быстрого доступа — слоты, покупка премиум-ячейки, применение предмета по клику
-// Изменение: номер в каждой ячейке теперь привязан к самой ячейке, а не к её позиции на экране. Раньше при нажатии на стрелки ‹ › предметы уезжали, а цифры 1-5 оставались на своих местах. Теперь цифра переезжает вместе с ячейкой — игрок видит, куда именно уехал предмет
+// Функция: панель быстрого доступа — слоты, покупка премиум-ячейки, открытие предмета по клику
+// Изменение: клик по предмету в ячейке теперь открывает окно описания предмета (openDetail), как это делается из мешка. Раньше клик применял предмет сразу, что было неинтуитивно. Игрок сам решает, что делать с предметом — применить, посмотреть описание, выбросить. Функция quickUseItem удалена за ненадобностью — её работу выполняет openDetail
 
 'use strict';
 
 /* ===== Панель быстрого доступа =====
    ↗️ ItemCards — в: itemcards.js
    ↗️ isReady, cdLeft — в: engine_state_cooldown.js
-   ↗️ eatItem, applyItemFromBag — в: engine_items_apply.js
-   ↗️ fireScroll — в: engine_combat.js
+   ↗️ openDetail — в: engine_render_inventory.js
    ↙️ Вызывается из: engine_render_screen.js (render, renderCombat) */
 function renderQuickbar(){
   const box=$('#quickbar');
@@ -41,8 +40,7 @@ function renderQuickbar(){
   /* ⚠️ Номер ячейки считается по её месту в общем списке (абсолютный индекс),
      а не по позиции на экране. При сдвиге стрелками содержимое ячеек
      переезжает, и номер переезжает вместе с ним — игрок видит, куда именно
-     уехал предмет. Если считать номер от позиции на экране (i+1), номера
-     будут всегда 1..5, независимо от сдвига — это неправильно. */
+     уехал предмет. */
   for(let i=0;i<5;i++){
     let cell=null;
     let absIdx=i;
@@ -89,8 +87,10 @@ function renderQuickbar(){
   if(showArrows)h+='<div class="qs-arrow" data-dir="1">›</div>';
   box.innerHTML=h;
 
+  /* ⚠️ Клик по предмету открывает окно описания (как из мешка). Игрок сам
+     решает: применить, посмотреть, выбросить. */
   box.querySelectorAll('.qs-slot[data-item]').forEach(function(el){
-    el.addEventListener('click',function(){quickUseItem(el.getAttribute('data-item'));});
+    el.addEventListener('click',function(){openDetail(el.getAttribute('data-item'));});
   });
   box.querySelectorAll('.qs-slot.premium').forEach(function(el){
     el.addEventListener('click',function(){quickUnlockSlot();});
@@ -126,34 +126,5 @@ function doQuickUnlockSlot(COST){
   S.bagExt=(S.bagExt||0)+1;
   save();
   toast('Новая ячейка мешка открыта! (−'+COST+' осколка)');
-  renderQuickbar();
-}
-
-/* ===== Быстрое применение предмета =====
-   ↙️ Вызывается из: renderQuickbar (в этом же файле) */
-function quickUseItem(id){
-  if(!has(id)){toast('Предмета нет');renderQuickbar();return;}
-  if(!isReady(id)){toast(ITEMS[id].n+': перезарядка '+cdLeft(id)+' ходов (сброс — в рюкзаке за 3 осколка)');renderQuickbar();return;}
-  if(HEALS[id]){
-    if(S.hp>=S.maxhp){toast('Вы и так здоровы');renderQuickbar();return;}
-    eatItem(id);
-    return;
-  }
-  if(id==='scroll_heal'){
-    if(S.hp>=S.maxhp){toast('Вы и так здоровы');renderQuickbar();return;}
-    if(S.combat){toast('Свиток лечения не работает в бою');renderQuickbar();return;}
-    S.inv.splice(S.inv.indexOf(id),1);
-    healHp(2);
-    toast('Исцеление (+2 сердца)');
-    save();
-    render();
-    return;
-  }
-  if(id==='scroll_fire'){
-    if(!S.combat){toast('Огненный шар — только в бою');renderQuickbar();return;}
-    fireScroll();
-    return;
-  }
-  applyItemFromBag(id);
   renderQuickbar();
 }

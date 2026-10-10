@@ -1,8 +1,8 @@
 /* style.css */
-/* v2.5.4 -> v2.5.5 */
+/* v2.5.5 -> v2.5.6 */
 /* Проект: GameBook1 */
-/* Функция: оформление игры (ХАД, панель текста, карты, оверлеи, анимации, панель быстрого доступа, галерея стартовых предметов) */
-/* Изменение: у панели текста уменьшены внутренние отступы сверху и снизу — было 16 и 22 пикселя, стало по 3 пикселя. Раньше между верхней (нижней) границей рамки и стрелкой прокрутки оставалось большое пустое поле. Теперь стрелки почти касаются рамки — 3 пикселя зазора */
+/* Функция: оформление игры (ХАД, панель текста, карты, оверлеи, анимации, панель быстрого доступа, галерея стартовых предметов, валюты в ХАД) */
+/* Изменение: добавлены стили для нового контейнера валют в верхней панели (.hudcoins и его дочерние .pursewrap). Кнопка «Мешок» убрана из разметки — вместо неё контейнер с тремя валютами: золото, осколки, знаки. Каждая валюта кликабельна. В мобильной раскладке средняя ячейка второго ряда теперь называется «coins» и занята блоком валют */
 :root{--wood:#5b422a;--wood2:#7a5a38;--parch:#f0e2c4;--ink:#2f2417;--gold:#e8c76a}
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{height:100%}
@@ -15,7 +15,7 @@ body{font-family:Georgia,'Times New Roman',serif;background:#0c110b;color:#efe6d
 #hud{width:100%;display:grid;grid-template-columns:1fr auto 1fr;gap:8px;align-items:center;background:rgba(15,22,13,.66);border:2px solid rgba(122,90,56,.65);border-radius:12px;padding:8px 12px}
 .hud-l{justify-self:start;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
 .hud-c{justify-self:center;display:flex;align-items:center}
-.hud-r{justify-self:end;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.hud-r{justify-self:end;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
 .heart{font-size:33px;color:#4a3b2a;text-shadow:0 1px 2px #000;transition:.3s;margin:0 7px}
 .heart.on{color:#e2453b}
 .badge{
@@ -39,28 +39,26 @@ body{font-family:Georgia,'Times New Roman',serif;background:#0c110b;color:#efe6d
 .gold{font-size:15px;color:var(--gold)}
 .btn{cursor:pointer;font-family:inherit;font-size:14px;background:linear-gradient(#6b4c30,#533a24);color:#f4e8ce;border:2px solid #8a6a44;border-radius:10px;padding:5px 12px}
 .btn:active{transform:translateY(1px)}
-/* ===== Кнопки HUD: настройки, мешок, история — один стиль ===== */
+/* ===== Кнопка настроек и кнопка «История» ===== */
 .gearbtn{display:flex;align-items:center;justify-content:center;background:linear-gradient(#3c5432,#2c4023);border:1px solid var(--wood2);border-radius:10px;padding:4px 12px;color:#e9dfc5;cursor:pointer;min-height:46px;min-width:46px;transition:transform .1s}
 .gearbtn:hover{border-color:#b8d494}
 .gearbtn:active{transform:translateY(1px)}
 .gearbtn svg{display:block;filter:drop-shadow(0 1px 2px #000)}
-.purse{display:flex;flex-direction:row;align-items:center;justify-content:center;gap:8px;background:linear-gradient(#3c5432,#2c4023);border:1px solid var(--wood2);border-radius:10px;padding:4px 14px;color:#e9dfc5;cursor:pointer;font-family:inherit;line-height:1;text-align:center;min-height:46px;font-size:14px;letter-spacing:.5px}
-.purse svg{display:block;flex-shrink:0;filter:drop-shadow(0 1px 2px #000)}
-.purse .pl1{font-size:14px;letter-spacing:.5px;white-space:nowrap}
-.purse b{color:var(--gold);font-weight:700}
-.purse:active{transform:translateY(1px)}
-/* ===== Кнопка «История» — как .purse, но со своей иконкой =====
-   Надпись «История» скрыта везде — остаётся только значок. */
 .histbtn{display:flex;flex-direction:row;align-items:center;justify-content:center;gap:8px;background:linear-gradient(#3c5432,#2c4023);border:1px solid var(--wood2);border-radius:10px;padding:4px 12px;color:#e9dfc5;cursor:pointer;font-family:inherit;line-height:1;text-align:center;min-height:46px;font-size:14px;letter-spacing:.5px}
 .histbtn svg{display:block;flex-shrink:0;filter:drop-shadow(0 1px 2px #000)}
 .histbtn .pl1{display:none}
 .histbtn:hover{border-color:#b8d494}
 .histbtn:active{transform:translateY(1px)}
-/* ===== Панель текста =====
-   Внутренние отступы панели уменьшены: сверху и снизу по 3 пикселя вместо
-   16 и 22. Раньше между верхней (нижней) границей рамки и стрелкой прокрутки
-   оставалось большое пустое поле. Теперь стрелки почти касаются рамки.
-   Боковые отступы оставлены как были — 18 пикселей. */
+/* ===== Контейнер валют в верхней панели =====
+   Три кликабельных блока: золото, осколки, знаки. Каждый блок —
+   иконка и число. Клик открывает соответствующий диалог.
+   ↙️ Наполняется из: settings.js (initHudCurrencies) */
+.hudcoins{display:flex;align-items:center;gap:6px;background:linear-gradient(#3c5432,#2c4023);border:1px solid var(--wood2);border-radius:10px;padding:4px 10px;min-height:46px}
+.hudcoins .pursewrap{display:inline-flex;align-items:center;gap:4px;cursor:pointer;border-radius:8px;padding:2px 4px;transition:transform .15s,background .15s}
+.hudcoins .pursewrap:hover{transform:translateY(-2px)}
+.hudcoins .pursewrap svg{display:block;filter:drop-shadow(0 1px 2px #000)}
+.hudcoins .purse-n{color:var(--gold);font-size:14px;font-weight:700}
+/* ===== Панель текста ===== */
 #panel{position:relative;width:100%;margin-top:-4px;background:rgba(16,23,14,.78);border:2px solid rgba(122,90,56,.65);border-radius:14px;padding:3px 18px 3px;box-shadow:0 8px 30px rgba(0,0,0,.35)}
 #panel .txt{
   position:relative;
@@ -70,12 +68,6 @@ body{font-family:Georgia,'Times New Roman',serif;background:#0c110b;color:#efe6d
   text-align:center;
 }
 @keyframes tin{from{opacity:0;transform:translateY(6px)}to{opacity:1}}
-/* ===== Обёртка текста =====
-   Верхний и нижний отступы заданы так, чтобы стрелки прокрутки и значок
-   автопрокрутки помещались в этих отступах и не наезжали на текст.
-   Сверху 18px — хватает для стрелки вверх (высота 18px), плюс 0 зазора.
-   Снизу 24px — хватает для стрелки вниз (высота 18px) и для кнопки
-   автопрокрутки (высота 26px). */
 .txtscroll{position:relative;padding:18px 0 24px}
 #ptxt{
   max-height:calc(1.55em * 6);
@@ -116,9 +108,6 @@ body{font-family:Georgia,'Times New Roman',serif;background:#0c110b;color:#efe6d
 .scrollhint.top{top:0}
 .scrollhint.bottom{bottom:0}
 .scrollhint svg{display:block}
-/* ===== Номер параграфа (§3) — в левом нижнем углу блока текста =====
-   Раньше был в правом нижнем углу, но там же стоит кнопка автопрокрутки.
-   Теперь номер слева, кнопка справа — не пересекаются. */
 .para{position:absolute;left:12px;bottom:6px;margin:0;font-size:11px;opacity:.45;letter-spacing:2px}
 .title{font-size:clamp(26px,6vw,44px);text-align:center;letter-spacing:6px;color:#f3e6c0;text-shadow:0 2px 10px #000,0 0 24px rgba(120,180,90,.35);margin:6px 0 2px;font-variant:small-caps}
 .subtitle{text-align:center;font-style:italic;opacity:.8;margin-bottom:10px}
@@ -153,20 +142,11 @@ body{font-family:Georgia,'Times New Roman',serif;background:#0c110b;color:#efe6d
 .card::before{content:'';position:absolute;inset:7px;border:2px solid rgba(122,90,56,.75);border-radius:8px;background-image:radial-gradient(circle,rgba(15,32,12,.5) 1.4px,transparent 1.9px);background-size:13px 13px;pointer-events:none}
 .card::after{content:'❧';position:absolute;top:9px;right:11px;color:rgba(232,199,106,.75);font-size:14px;z-index:4}
 .card:active{transform:translateY(-1px) scale(.98)}
-/* ===== Приподнимание карты при наведении — только там, где есть курсор ===
-   На телефоне и планшете hover не работает: первое касание срабатывает как
-   наведение, карта уезжает из-под пальца, и клик не срабатывает. Поэтому
-   правило включается только на устройствах, где есть настоящий курсор.
-   Проверка двойная: (hover: hover) — есть наведение, И (pointer: fine) —
-   есть точный указатель (мышь или трекпад). У пальца точного указателя нет,
-   поэтому на телефоне правило не сработает, даже если браузер ошибочно
-   сообщает о наличии hover. */
 @media(hover:hover) and (pointer:fine){
   .card:hover{transform:translateY(-7px) rotate(-.5deg);box-shadow:0 14px 22px rgba(0,0,0,.5),0 0 18px rgba(150,200,110,.25)}
 }
 .ct{position:relative;z-index:2;order:2;background:linear-gradient(#f6ead0,#e6d2a8);border:2px solid var(--wood);border-radius:9px;padding:8px 7px;color:var(--ink);font-size:clamp(12px,1.5vw,14.5px);font-weight:700;line-height:1.25;text-align:center;box-shadow:inset 0 0 8px rgba(91,66,42,.35)}
 .cg{position:absolute;top:24px;left:10px;right:10px;z-index:3;text-align:center;font-size:10.5px;color:#d9ecb8;letter-spacing:1px;line-height:1.2;text-shadow:0 1px 2px #000,0 0 4px rgba(0,0,0,.7);pointer-events:none}
-/* ===== Подсказки — «шапка» карты ===== */
 .card-apply{
   position:absolute;
   top:0;
@@ -203,7 +183,6 @@ body{font-family:Georgia,'Times New Roman',serif;background:#0c110b;color:#efe6d
   font-style:italic;
   pointer-events:none;
 }
-/* ===== Блок с правилом броска (1-2/3-6) — тоже «шапка» ===== */
 .card-roll{
   background:rgba(40,20,15,.78)!important;
   border-bottom-color:rgba(200,90,90,.65)!important;
@@ -231,14 +210,9 @@ body{font-family:Georgia,'Times New Roman',serif;background:#0c110b;color:#efe6d
 .qs-slot.premium:hover{background:rgba(0,0,0,.4);border-color:#b8d494}
 .qs-slot.premium .qs-price{font-size:20px;color:#ffd97a;font-weight:800;text-shadow:0 2px 4px #000;line-height:1}
 .qs-slot.premium .qs-price-icon{display:block;line-height:0}
-/* ===== Приподнимание ячейки быстрой панели — только там, где есть курсор === */
 @media(hover:hover) and (pointer:fine){
   .qs-slot:hover{transform:translateY(-3px);border-color:#b8d494}
 }
-/* ===== Полупрозрачный номер ячейки быстрой панели =====
-   Показывает, какая ячейка под каким номером. Нужен, чтобы при сдвиге
-   стрелками было видно, куда уехали предметы.
-   ↙️ Используется в: engine_render_quickbar.js */
 .qs-num{position:absolute;top:2px;right:4px;z-index:5;font-size:11px;font-weight:700;color:rgba(255,255,255,.45);text-shadow:0 1px 2px rgba(0,0,0,.9);pointer-events:none;line-height:1;font-family:Georgia,serif}
 @media(max-width:900px){.qs-slot{width:88px;height:88px}.qs-slot .qs-emoji{font-size:44px}.qs-arrow{width:36px;height:88px;font-size:28px;flex:0 0 36px}#quickbar{gap:8px;min-height:112px;margin-top:18px}}
 
@@ -278,9 +252,6 @@ body{font-family:Georgia,'Times New Roman',serif;background:#0c110b;color:#efe6d
 .pursewrap{display:inline-flex;align-items:center;gap:7px}
 .pursewrap svg{display:block;filter:drop-shadow(0 2px 3px rgba(0,0,0,.5))}
 .purse-n{color:var(--gold);font-size:16px;font-weight:700}
-.invhead .pursewrap:not(.marks-box):not(.adcoins-box){cursor:pointer;border-radius:10px;padding:2px 4px;transition:transform .15s}
-.invhead .pursewrap:not(.marks-box):not(.adcoins-box):hover{transform:translateY(-2px)}
-.invhead .pursewrap:not(.marks-box):not(.adcoins-box):hover svg{filter:drop-shadow(0 0 5px rgba(232,199,106,.9))}
 .baggrid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:6px}
 .bcell{position:relative;aspect-ratio:5/7.2;border:3px solid rgba(122,90,56,.6);border-radius:12px;background:rgba(0,0,0,.25);display:flex;align-items:center;justify-content:center;font-size:40px;cursor:pointer;transition:transform .15s}
 .bcell:hover{transform:translateY(-3px)}
@@ -311,28 +282,28 @@ body{font-family:Georgia,'Times New Roman',serif;background:#0c110b;color:#efe6d
 
 /* ===== Адаптив: узкий экран (телефон) =====
    Верхняя панель — два ряда.
-   Строка 1: локация (по ширине текста) · История · Мешок · Настройки
-             (три кнопки справа — равные между собой).
+   Строка 1: локация (по ширине текста) · История · Валюты · Настройки.
    Строка 2: сердца по центру.
-   Промежутки между всеми кнопками одинаковые — за это отвечает gap. */
+   Валюты занимают одну ячейку — три маленьких блока в ряд. */
 @media(max-width:640px){
   #hud{
-    grid-template-columns:auto 1fr 1fr 1fr;
+    grid-template-columns:auto 1fr auto auto;
     grid-template-areas:
-      "stat hist bag set"
+      "stat hist coins set"
       "heart heart heart heart";
     gap:6px;
     padding:8px 10px;
     font-size:13px;
   }
   .hud-l,.hud-c,.hud-r{display:contents}
-  #statb{grid-area:stat;justify-self:start;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:11px;padding:4px 10px}
-  #histb{grid-area:hist;justify-self:stretch;padding:4px 6px;min-height:42px}
-  #bagb{grid-area:bag;justify-self:stretch;padding:4px 6px;min-height:42px}
-  #setb{grid-area:set;justify-self:stretch;padding:2px;min-height:42px;min-width:0}
+  #statb{grid-area:stat;justify-self:start;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:11px;padding:4px 8px}
+  #histb{grid-area:hist;justify-self:start;padding:4px 6px;min-height:42px}
+  #hudcoins{grid-area:coins;justify-self:end;padding:3px 6px;min-height:42px;gap:4px}
+  #hudcoins .purse-n{font-size:12px}
+  #hudcoins .pursewrap{padding:1px 2px}
+  #setb{grid-area:set;justify-self:end;padding:2px;min-height:42px;min-width:42px}
   #hearts{grid-area:heart;justify-self:center;display:flex;align-items:center;justify-content:center;padding:2px 0}
 
-  #bagb .pl1{display:none}
   #histb .pl1{display:none}
   #setb svg{width:28px;height:28px}
 
@@ -365,20 +336,13 @@ body{font-family:Georgia,'Times New Roman',serif;background:#0c110b;color:#efe6d
   #quickbar .qs-slot.premium .qs-price{font-size:15px}
   #quickbar .qs-num{font-size:10px;top:1px;right:3px}
 }
-.marks-box{display:inline-flex;align-items:center;gap:7px;cursor:pointer;border-radius:10px;padding:2px 4px;transition:transform .15s}
-.marks-box:hover{transform:translateY(-2px)}
-.marks-box:hover svg{filter:drop-shadow(0 0 5px rgba(184,212,148,.9))}
 .marks-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(72px,1fr));gap:10px;margin-bottom:10px}
 .mark-tile{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;padding:8px 4px;border:2px solid rgba(122,90,56,.5);border-radius:10px;background:rgba(0,0,0,.22);cursor:pointer;color:#e8dcbe;font-size:12px;transition:transform .15s}
 .mark-tile:hover{transform:translateY(-2px);border-color:#b8d494}
 .mark-tile.on{border-color:#b8d494;box-shadow:0 0 8px rgba(150,200,110,.35)}
-.adcoins-box{display:inline-flex;align-items:center;gap:7px;cursor:pointer;border-radius:10px;padding:2px 4px;transition:transform .15s}
-.adcoins-box:hover{transform:translateY(-2px)}
-.adcoins-box:hover svg{filter:drop-shadow(0 0 5px rgba(184,212,148,.9))}
 .adbtn{display:flex;justify-content:center;align-items:center;gap:7px;width:100%;margin-bottom:8px}
 .adbtn svg{display:block;flex-shrink:0;filter:drop-shadow(0 1px 2px rgba(0,0,0,.5))}
 .adcnow{text-align:center;font-size:14px;margin-bottom:10px;color:#e9dfc5}
 .adcnow b{color:var(--gold);font-size:16px}
 .adchint{text-align:center;font-style:italic;font-size:14px;line-height:1.4;opacity:.8;margin:2px 0 8px;color:#e9dfc5}
-/* ===== Компактный межстрочный разделитель для абзацев в подсказках ===== */
 .hgap{display:block;height:.75em;line-height:0;font-size:1em}
