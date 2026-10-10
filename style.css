@@ -1,0 +1,368 @@
+/* style.css */
+/* v2.4.9 */
+/* Проект: GameBook1 */
+/* Функция: оформление игры (ХАД, панель текста, карты, оверлеи, анимации, панель быстрого доступа, галерея стартовых предметов) */
+/* Изменение: у кнопки «История» в верхней панели подпись «История» скрыта на всех устройствах — остаётся только значок. Правило подпрыгивания карты при наведении включается только при одновременном совпадении (hover: hover) и (pointer: fine) — это закрывает ложное срабатывание на мобильных браузерах, которые сообщают о наличии hover, хотя управление идёт пальцем */
+:root{--wood:#5b422a;--wood2:#7a5a38;--parch:#f0e2c4;--ink:#2f2417;--gold:#e8c76a}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{height:100%}
+body{font-family:Georgia,'Times New Roman',serif;background:#0c110b;color:#efe6d0;overflow-x:hidden}
+#bg{position:fixed;inset:0;z-index:-1;pointer-events:none}
+#bg svg{width:100%;height:100%;display:block;animation:bgfade .8s}
+@keyframes bgfade{from{opacity:0}to{opacity:1}}
+#vign{position:fixed;inset:0;z-index:0;pointer-events:none;background:radial-gradient(ellipse at center,transparent 55%,rgba(5,10,5,.55) 100%)}
+#app{position:relative;z-index:1;min-height:100vh;display:flex;flex-direction:column;align-items:center;gap:14px;padding:10px 12px 30px;max-width:900px;margin:0 auto}
+#hud{width:100%;display:grid;grid-template-columns:1fr auto 1fr;gap:8px;align-items:center;background:rgba(15,22,13,.66);border:2px solid rgba(122,90,56,.65);border-radius:12px;padding:8px 12px}
+.hud-l{justify-self:start;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.hud-c{justify-self:center;display:flex;align-items:center}
+.hud-r{justify-self:end;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.heart{font-size:33px;color:#4a3b2a;text-shadow:0 1px 2px #000;transition:.3s;margin:0 7px}
+.heart.on{color:#e2453b}
+.badge{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  min-height:46px;
+  font-size:13px;
+  letter-spacing:.5px;
+  background:linear-gradient(#3c5432,#2c4023);
+  border:1px solid var(--wood2);
+  border-radius:10px;
+  padding:4px 14px;
+  color:#e9dfc5;
+  line-height:1.2;
+  text-align:center;
+  cursor:pointer;
+  white-space:nowrap;
+}
+.badge:hover{border-color:#b8d494}
+.gold{font-size:15px;color:var(--gold)}
+.btn{cursor:pointer;font-family:inherit;font-size:14px;background:linear-gradient(#6b4c30,#533a24);color:#f4e8ce;border:2px solid #8a6a44;border-radius:10px;padding:5px 12px}
+.btn:active{transform:translateY(1px)}
+/* ===== Кнопки HUD: настройки, мешок, история — один стиль ===== */
+.gearbtn{display:flex;align-items:center;justify-content:center;background:linear-gradient(#3c5432,#2c4023);border:1px solid var(--wood2);border-radius:10px;padding:4px 12px;color:#e9dfc5;cursor:pointer;min-height:46px;min-width:46px;transition:transform .1s}
+.gearbtn:hover{border-color:#b8d494}
+.gearbtn:active{transform:translateY(1px)}
+.gearbtn svg{display:block;filter:drop-shadow(0 1px 2px #000)}
+.purse{display:flex;flex-direction:row;align-items:center;justify-content:center;gap:8px;background:linear-gradient(#3c5432,#2c4023);border:1px solid var(--wood2);border-radius:10px;padding:4px 14px;color:#e9dfc5;cursor:pointer;font-family:inherit;line-height:1;text-align:center;min-height:46px;font-size:14px;letter-spacing:.5px}
+.purse svg{display:block;flex-shrink:0;filter:drop-shadow(0 1px 2px #000)}
+.purse .pl1{font-size:14px;letter-spacing:.5px;white-space:nowrap}
+.purse b{color:var(--gold);font-weight:700}
+.purse:active{transform:translateY(1px)}
+/* ===== Кнопка «История» — как .purse, но со своей иконкой =====
+   Надпись «История» скрыта везде — остаётся только значок. */
+.histbtn{display:flex;flex-direction:row;align-items:center;justify-content:center;gap:8px;background:linear-gradient(#3c5432,#2c4023);border:1px solid var(--wood2);border-radius:10px;padding:4px 12px;color:#e9dfc5;cursor:pointer;font-family:inherit;line-height:1;text-align:center;min-height:46px;font-size:14px;letter-spacing:.5px}
+.histbtn svg{display:block;flex-shrink:0;filter:drop-shadow(0 1px 2px #000)}
+.histbtn .pl1{display:none}
+.histbtn:hover{border-color:#b8d494}
+.histbtn:active{transform:translateY(1px)}
+/* ===== Панель текста ===== */
+#panel{position:relative;width:100%;margin-top:-4px;background:rgba(16,23,14,.78);border:2px solid rgba(122,90,56,.65);border-radius:14px;padding:16px 18px 22px;box-shadow:0 8px 30px rgba(0,0,0,.35)}
+#panel .txt{
+  position:relative;
+  font-size:17px;
+  line-height:1.55;
+  animation:tin .5s;
+  text-align:center;
+}
+@keyframes tin{from{opacity:0;transform:translateY(6px)}to{opacity:1}}
+.txtscroll{position:relative}
+#ptxt{
+  max-height:calc(1.55em * 6);
+  overflow-y:auto;
+  overflow-x:hidden;
+  touch-action:pan-y;
+  -webkit-overflow-scrolling:touch;
+  scrollbar-width:none;
+  text-wrap:pretty;
+  orphans:2;
+  widows:2;
+}
+#ptxt::-webkit-scrollbar{display:none}
+#panel .txt.no-clamp{max-height:none;overflow:visible}
+.scrollhint{
+  position:absolute;
+  left:50%;
+  transform:translateX(-50%);
+  width:44px;
+  height:22px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  border-radius:12px;
+  background:rgba(20,28,16,.92);
+  border:1px solid #8a6a44;
+  color:#e8c76a;
+  cursor:pointer;
+  opacity:0;
+  pointer-events:none;
+  transition:opacity .2s ease, background .15s ease, color .15s ease;
+  user-select:none;
+  z-index:6;
+  box-shadow:0 2px 6px rgba(0,0,0,.55);
+}
+.scrollhint.on{opacity:1;pointer-events:auto}
+.scrollhint:hover{background:rgba(40,52,30,.95);color:#fff3cf;border-color:#b8d494}
+.scrollhint.top{top:-4px}
+.scrollhint.bottom{bottom:-4px}
+.scrollhint svg{display:block}
+.para{position:absolute;right:12px;bottom:6px;margin:0;font-size:11px;opacity:.45;letter-spacing:2px}
+.title{font-size:clamp(26px,6vw,44px);text-align:center;letter-spacing:6px;color:#f3e6c0;text-shadow:0 2px 10px #000,0 0 24px rgba(120,180,90,.35);margin:6px 0 2px;font-variant:small-caps}
+.subtitle{text-align:center;font-style:italic;opacity:.8;margin-bottom:10px}
+.foe{display:flex;gap:12px;align-items:center;margin-bottom:8px;justify-content:center}
+.foe .ico{font-size:44px;filter:drop-shadow(0 2px 4px #000)}
+.foe .nm{font-size:20px;font-variant:small-caps;letter-spacing:1px}
+.frow{font-size:20px;letter-spacing:3px}
+.log{margin-top:8px;font-size:14px;opacity:.9;line-height:1.45;text-align:center}
+.log div{border-top:1px dashed rgba(122,90,56,.35);padding-top:4px;margin-top:4px}
+#cards{width:100%;display:flex;flex-wrap:wrap;justify-content:center;gap:14px;min-height:150px;padding-top:4px}
+.cardwrap{display:flex;flex-direction:column;align-items:center;gap:6px}
+.card{
+  position:relative;
+  width:clamp(128px,22vw,168px);
+  aspect-ratio:5/7.2;
+  cursor:pointer;
+  user-select:none;
+  border-radius:12px;
+  border:3px solid var(--wood);
+  background:radial-gradient(circle at 30% 15%,rgba(255,255,255,.10),transparent 45%),repeating-linear-gradient(45deg,#2e4d27 0 9px,#38582e 9px 18px),#2e4d27;
+  box-shadow:0 6px 14px rgba(0,0,0,.45),inset 0 0 0 2px rgba(20,35,15,.6);
+  display:flex;
+  flex-direction:column;
+  align-items:stretch;
+  justify-content:flex-end;
+  gap:5px;
+  padding:10px;
+  transition:transform .18s,box-shadow .18s;
+  touch-action:manipulation;
+  overflow:hidden;
+}
+.card::before{content:'';position:absolute;inset:7px;border:2px solid rgba(122,90,56,.75);border-radius:8px;background-image:radial-gradient(circle,rgba(15,32,12,.5) 1.4px,transparent 1.9px);background-size:13px 13px;pointer-events:none}
+.card::after{content:'❧';position:absolute;top:9px;right:11px;color:rgba(232,199,106,.75);font-size:14px;z-index:4}
+.card:active{transform:translateY(-1px) scale(.98)}
+/* ===== Приподнимание карты при наведении — только там, где есть курсор ===
+   На телефоне и планшете hover не работает: первое касание срабатывает как
+   наведение, карта уезжает из-под пальца, и клик не срабатывает. Поэтому
+   правило включается только на устройствах, где есть настоящий курсор.
+   Проверка двойная: (hover: hover) — есть наведение, И (pointer: fine) —
+   есть точный указатель (мышь или трекпад). У пальца точного указателя нет,
+   поэтому на телефоне правило не сработает, даже если браузер ошибочно
+   сообщает о наличии hover. */
+@media(hover:hover) and (pointer:fine){
+  .card:hover{transform:translateY(-7px) rotate(-.5deg);box-shadow:0 14px 22px rgba(0,0,0,.5),0 0 18px rgba(150,200,110,.25)}
+}
+.ct{position:relative;z-index:2;order:2;background:linear-gradient(#f6ead0,#e6d2a8);border:2px solid var(--wood);border-radius:9px;padding:8px 7px;color:var(--ink);font-size:clamp(12px,1.5vw,14.5px);font-weight:700;line-height:1.25;text-align:center;box-shadow:inset 0 0 8px rgba(91,66,42,.35)}
+.cg{position:absolute;top:24px;left:10px;right:10px;z-index:3;text-align:center;font-size:10.5px;color:#d9ecb8;letter-spacing:1px;line-height:1.2;text-shadow:0 1px 2px #000,0 0 4px rgba(0,0,0,.7);pointer-events:none}
+/* ===== Подсказки — «шапка» карты ===== */
+.card-apply{
+  position:absolute;
+  top:0;
+  left:0;
+  right:0;
+  z-index:5;
+  text-align:center;
+  font-size:11px;
+  line-height:1.2;
+  color:#ffe9a0;
+  background:rgba(40,30,15,.65);
+  border-bottom:1px solid rgba(232,199,106,.55);
+  border-radius:12px 12px 0 0;
+  padding:4px 6px;
+  text-shadow:0 1px 2px #000;
+  font-weight:700;
+  pointer-events:none;
+}
+.card-compass{
+  position:absolute;
+  top:0;
+  left:0;
+  right:0;
+  z-index:5;
+  text-align:center;
+  font-size:10.5px;
+  line-height:1.15;
+  color:#dff0c8;
+  background:rgba(15,35,20,.65);
+  border-bottom:1px solid rgba(140,200,130,.55);
+  border-radius:12px 12px 0 0;
+  padding:3px 6px;
+  text-shadow:0 1px 2px #000;
+  font-style:italic;
+  pointer-events:none;
+}
+/* ===== Блок с правилом броска (1-2/3-6) — тоже «шапка» ===== */
+.card-roll{
+  background:rgba(40,20,15,.78)!important;
+  border-bottom-color:rgba(200,90,90,.65)!important;
+  color:#ffd9c8!important;
+  font-style:normal!important;
+}
+.card-roll b{color:#ffe9a0}
+.cn{position:relative;z-index:2;width:26px;height:26px;border-radius:50%;background:#20351b;border:1px solid var(--wood2);color:#e8dcbe;font-size:15px;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 5px rgba(0,0,0,.45)}
+
+#quickbar{width:100%;display:flex;justify-content:center;align-items:center;gap:12px;margin-top:22px;padding:8px 4px;min-height:140px;flex-wrap:nowrap}
+.qs-arrow{flex:0 0 44px;width:44px;height:110px;display:flex;align-items:center;justify-content:center;font-size:36px;color:#f0e2c4;background:rgba(60,40,20,.85);border:2px solid #8a6a44;border-radius:10px;cursor:pointer;user-select:none;text-shadow:0 1px 2px #000}
+.qs-arrow:active{transform:scale(.95)}
+.qs-slot{flex:0 0 auto;width:112px;height:112px;border-radius:14px;border:3px solid #8a6a44;background:rgba(20,28,16,.7);display:flex;align-items:center;justify-content:center;cursor:pointer;position:relative;overflow:hidden;box-shadow:0 3px 8px rgba(0,0,0,.55);transition:transform .12s,border-color .12s}
+.qs-slot.empty{cursor:default;background:rgba(0,0,0,.25);border-style:dashed;opacity:.5}
+.qs-slot.empty:hover{transform:none;border-color:#8a6a44}
+.qs-slot .gbp{width:100%;height:100%;border:none;border-radius:10px;box-shadow:none}
+.qs-slot .gbp::before{inset:4px;border-radius:8px}
+.qs-slot .gbp::after{display:none}
+.qs-slot .gbp-art{width:90%;height:90%}
+.qs-slot .qs-emoji{font-size:56px;line-height:1}
+.qs-slot.on-cd .gbp{filter:grayscale(1) brightness(.5);opacity:.75}
+.qs-slot.on-cd .qs-emoji{filter:grayscale(1);opacity:.55}
+.qs-slot .cd-badge{position:absolute;top:4px;left:4px;z-index:4;font-size:14px;font-weight:700;background:#3a2410;border:1px solid #8a6a44;border-radius:8px;padding:1px 7px;color:#ffd97a;text-shadow:0 1px 2px #000}
+.qs-slot.premium{border-style:dashed;border-color:#8a6a44;background:rgba(0,0,0,.55);color:#8a6a44;flex-direction:column;gap:2px}
+.qs-slot.premium:hover{background:rgba(0,0,0,.4);border-color:#b8d494}
+.qs-slot.premium .qs-price{font-size:20px;color:#ffd97a;font-weight:800;text-shadow:0 2px 4px #000;line-height:1}
+.qs-slot.premium .qs-price-icon{display:block;line-height:0}
+/* ===== Приподнимание ячейки быстрой панели — только там, где есть курсор === */
+@media(hover:hover) and (pointer:fine){
+  .qs-slot:hover{transform:translateY(-3px);border-color:#b8d494}
+}
+/* ===== Полупрозрачный номер ячейки быстрой панели =====
+   Показывает, какая ячейка под каким номером. Нужен, чтобы при сдвиге
+   стрелками было видно, куда уехали предметы.
+   ↙️ Используется в: engine_render_quickbar.js */
+.qs-num{position:absolute;top:2px;right:4px;z-index:5;font-size:11px;font-weight:700;color:rgba(255,255,255,.45);text-shadow:0 1px 2px rgba(0,0,0,.9);pointer-events:none;line-height:1;font-family:Georgia,serif}
+@media(max-width:900px){.qs-slot{width:88px;height:88px}.qs-slot .qs-emoji{font-size:44px}.qs-arrow{width:36px;height:88px;font-size:28px;flex:0 0 36px}#quickbar{gap:8px;min-height:112px;margin-top:18px}}
+
+#dicewrap{position:fixed;z-index:50;left:50%;top:42%;transform:translate(-50%,-50%);width:192px;height:192px;perspective:900px;opacity:0;pointer-events:none;transition:opacity .25s}
+#dicewrap.on{opacity:1}
+#dice{width:100%;height:100%;position:relative;transform-style:preserve-3d}
+#dice.roll{animation:diceroll 2s linear forwards}
+#dicecube{width:100%;height:100%;position:relative;transform-style:preserve-3d}
+.face{position:absolute;left:0;top:0;width:192px;height:192px;display:grid;grid-template-columns:repeat(3,1fr);grid-template-rows:repeat(3,1fr);padding:20px;border-radius:24px;background:linear-gradient(145deg,#f7ead0,#d9c08a);border:3px solid #8a6a44;box-shadow:inset 0 0 22px rgba(91,66,42,.4);backface-visibility:hidden}
+.cell{display:flex;align-items:center;justify-content:center}
+.pip{width:26px;height:26px;border-radius:50%;background:radial-gradient(circle at 35% 35%,#5b422a,#241a10);box-shadow:inset 0 -2px 3px rgba(0,0,0,.6)}
+.f1{transform:translateZ(96px)}
+.f6{transform:rotateY(180deg) translateZ(96px)}
+.f3{transform:rotateY(90deg) translateZ(96px)}
+.f4{transform:rotateY(-90deg) translateZ(96px)}
+.f5{transform:rotateX(90deg) translateZ(96px)}
+.f2{transform:rotateX(-90deg) translateZ(96px)}
+@keyframes diceroll{0%{transform:rotateX(0deg) rotateY(0deg)}14.29%{transform:rotateX(69.7deg) rotateY(104.5deg)}28.57%{transform:rotateX(255.5deg) rotateY(383.2deg)}42.86%{transform:rotateX(464.5deg) rotateY(696.8deg)}57.14%{transform:rotateX(603.9deg) rotateY(905.8deg)}71.43%{transform:rotateX(673.5deg) rotateY(1010.3deg)}85.71%{transform:rotateX(708.4deg) rotateY(1062.6deg)}100%{transform:rotateX(720deg) rotateY(1080deg)}}
+@media(max-width:480px){#dicewrap{transform:translate(-50%,-50%) scale(.75)}}
+#dicebtns{position:absolute;top:100%;left:50%;transform:translateX(-50%);margin-top:12px;width:250px;display:flex;flex-direction:column;gap:8px;align-items:stretch;pointer-events:auto;z-index:51}
+.luckyq{font-size:15px;color:#f0e2c4;text-shadow:0 1px 3px #000;text-align:center;letter-spacing:1px;font-variant:small-caps}
+.luckypick{display:flex;gap:18px;justify-content:center}
+.luckydie{font-size:44px;line-height:1;padding:8px 18px;background:linear-gradient(145deg,#f7ead0,#d9c08a);color:#2f2417;border:2px solid #8a6a44;border-radius:10px;cursor:pointer;box-shadow:0 4px 10px rgba(0,0,0,.5);transition:transform .15s}
+.luckydie:hover{transform:translateY(-3px)}
+@media(max-width:480px){#dicebtns{width:210px}.luckydie{font-size:36px}}
+#toasts{position:fixed;z-index:60;top:14px;left:50%;transform:translateX(-50%);display:flex;flex-direction:column;gap:6px;align-items:center;pointer-events:none;width:90%;max-width:460px}
+.toast{background:rgba(20,28,16,.92);border:2px solid var(--wood2);color:#f2e7c8;border-radius:10px;padding:7px 14px;font-size:14px;animation:tin .3s;box-shadow:0 4px 14px rgba(0,0,0,.4);text-align:center}
+.ovl{position:fixed;inset:0;z-index:40;background:rgba(6,10,6,.7);display:flex;align-items:center;justify-content:center;padding:16px}
+.hidden{display:none}
+.invbox{width:100%;max-width:640px;max-height:82vh;overflow:auto;background:linear-gradient(#20301c,#182415);border:3px solid var(--wood2);border-radius:14px;padding:16px}
+.invbox h3{font-variant:small-caps;letter-spacing:2px;color:#f0e2c4;margin-bottom:10px;text-align:center}
+.slot{display:flex;justify-content:space-between;gap:8px;align-items:center;background:rgba(0,0,0,.22);border:1px solid rgba(122,90,56,.5);border-radius:9px;padding:7px 10px;margin-bottom:6px;font-size:14px}
+.slot .d{opacity:.7;font-size:12.5px}
+.slot.usable{cursor:pointer;border-color:#8fae62}
+.invhead{display:flex;align-items:center;gap:8px;justify-content:flex-start;margin-bottom:10px}
+.invh-bag{font-variant:small-caps;letter-spacing:2px;color:#f0e2c4;font-size:18px;flex:1}
+.pursewrap{display:inline-flex;align-items:center;gap:7px}
+.pursewrap svg{display:block;filter:drop-shadow(0 2px 3px rgba(0,0,0,.5))}
+.purse-n{color:var(--gold);font-size:16px;font-weight:700}
+.invhead .pursewrap:not(.marks-box):not(.adcoins-box){cursor:pointer;border-radius:10px;padding:2px 4px;transition:transform .15s}
+.invhead .pursewrap:not(.marks-box):not(.adcoins-box):hover{transform:translateY(-2px)}
+.invhead .pursewrap:not(.marks-box):not(.adcoins-box):hover svg{filter:drop-shadow(0 0 5px rgba(232,199,106,.9))}
+.baggrid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:6px}
+.bcell{position:relative;aspect-ratio:5/7.2;border:3px solid rgba(122,90,56,.6);border-radius:12px;background:rgba(0,0,0,.25);display:flex;align-items:center;justify-content:center;font-size:40px;cursor:pointer;transition:transform .15s}
+.bcell:hover{transform:translateY(-3px)}
+.bcell.empty{cursor:default;background:rgba(0,0,0,.15)}
+.bcell.empty:hover{transform:none}
+.bcell .cnt{position:absolute;top:5px;right:5px;font-size:13px;background:#20351b;border:1px solid var(--wood2);border-radius:8px;padding:0 5px;color:#e8dcbe;z-index:4}
+.bcell.premium{border-style:dashed;border-color:#8a6a44;background:rgba(0,0,0,.55);color:#8a6a44}
+.bcell.premium:hover{background:rgba(0,0,0,.4);border-color:#b8d494}
+.bcell.premium .price{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);display:flex;justify-content:center;align-items:center;gap:8px;font-size:24px;color:#ffd97a;font-weight:700;text-shadow:0 2px 4px #000;pointer-events:none}
+.bcell.premium .price b{font-size:26px;color:#fff3cf;font-weight:800}
+.bcell-name{position:absolute;bottom:6px;left:6px;right:6px;z-index:3;background:linear-gradient(#f6ead0,#e6d2a8);border:2px solid #5b422a;border-radius:6px;padding:2px 4px;color:#2f2417;font-size:11px;font-weight:700;line-height:1.15;text-align:center;box-shadow:0 2px 4px rgba(0,0,0,.45),inset 0 0 6px rgba(91,66,42,.25);overflow:hidden;text-overflow:ellipsis;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;pointer-events:none}
+.bcell-card.on-cd .gbp{filter:grayscale(1) brightness(.5);opacity:.75}
+.bcell-card.on-cd .gbp-art{opacity:.55}
+.cd-badge{position:absolute;top:5px;left:5px;z-index:4;font-size:12px;font-weight:700;background:#3a2410;border:1px solid #8a6a44;border-radius:8px;padding:0 6px;color:#ffd97a;box-shadow:0 2px 4px rgba(0,0,0,.6);text-shadow:0 1px 2px #000}
+.det-preview{display:flex;justify-content:center;margin:4px 0 8px}
+.det-preview .gbp{width:160px}
+.detic{font-size:96px;text-align:center;filter:drop-shadow(0 3px 6px rgba(0,0,0,.5));margin-bottom:6px}
+.detd{text-align:center;font-size:14px;line-height:1.5;opacity:.9;margin:8px 0}
+.crow{text-align:center;font-size:15px;margin-top:10px}
+.detbox,.charbox{max-width:420px}
+#det,#char{z-index:45}
+#startitemgallery{z-index:47}
+#startitempreview{z-index:48}
+#buyconfirm{z-index:50}
+#histov{z-index:46}
+#cpchoice{z-index:49}
+#adcoinov,#goldov,#markov{z-index:46}
+
+/* ===== Адаптив: узкий экран (телефон) ===== */
+@media(max-width:640px){
+  #hud{
+    grid-template-columns:1fr 1fr 1fr;
+    grid-template-areas:
+      "stat stat bag"
+      "hist heart set";
+    gap:6px 6px;
+    padding:8px 10px;
+    font-size:13px;
+  }
+  .hud-l,.hud-c,.hud-r{display:contents}
+  #statb{grid-area:stat;justify-self:start;min-width:0;overflow:hidden;text-overflow:ellipsis;max-width:100%}
+  #histb{grid-area:hist;justify-self:start}
+  #hearts{grid-area:heart;justify-self:center;display:flex;align-items:center;justify-content:center}
+  #bagb{grid-area:bag;justify-self:end}
+  #setb{grid-area:set;justify-self:end}
+
+  #bagb{padding:4px 8px;min-height:42px}
+  #bagb .pl1{display:none}
+  #histb{padding:4px 8px;min-height:42px}
+  #setb{padding:2px;min-height:42px;min-width:42px}
+  #setb svg{width:28px;height:28px}
+
+  #panel .txt{font-size:15px}
+  #ptxt{max-height:calc(1.55em * 6)}
+  .card{width:clamp(104px,30vw,140px)}
+  .heart{font-size:27px;margin:0 5px}
+  .badge{min-height:42px;padding:4px 10px;font-size:12px;max-width:100%}
+  .bcell{font-size:30px}
+  .detic{font-size:72px}
+  .bcell-name{font-size:10px;padding:2px 3px}
+  .det-preview .gbp{width:130px}
+  .card-apply{font-size:10px;padding:3px 5px}
+  .card-compass{font-size:9.5px;padding:2px 5px}
+  .card-roll{font-size:9.5px;padding:3px 5px}
+
+  #quickbar{
+    display:grid;
+    grid-template-columns:32px repeat(5,1fr) 32px;
+    gap:3px;
+    padding:6px 4px;
+    min-height:auto;
+    margin-top:16px;
+    align-items:stretch;
+  }
+  #quickbar .qs-arrow{width:auto;height:auto;min-height:56px;font-size:22px;flex:none;padding:0;border-width:2px}
+  #quickbar .qs-slot{width:auto;height:auto;aspect-ratio:1;min-width:0;min-height:0;flex:none;border-width:2px;border-radius:10px}
+  #quickbar .qs-slot .qs-emoji{font-size:28px}
+  #quickbar .qs-slot .cd-badge{font-size:10px;padding:0 3px}
+  #quickbar .qs-slot.premium .qs-price{font-size:15px}
+  #quickbar .qs-num{font-size:10px;top:1px;right:3px}
+}
+.marks-box{display:inline-flex;align-items:center;gap:7px;cursor:pointer;border-radius:10px;padding:2px 4px;transition:transform .15s}
+.marks-box:hover{transform:translateY(-2px)}
+.marks-box:hover svg{filter:drop-shadow(0 0 5px rgba(184,212,148,.9))}
+.marks-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(72px,1fr));gap:10px;margin-bottom:10px}
+.mark-tile{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;padding:8px 4px;border:2px solid rgba(122,90,56,.5);border-radius:10px;background:rgba(0,0,0,.22);cursor:pointer;color:#e8dcbe;font-size:12px;transition:transform .15s}
+.mark-tile:hover{transform:translateY(-2px);border-color:#b8d494}
+.mark-tile.on{border-color:#b8d494;box-shadow:0 0 8px rgba(150,200,110,.35)}
+.adcoins-box{display:inline-flex;align-items:center;gap:7px;cursor:pointer;border-radius:10px;padding:2px 4px;transition:transform .15s}
+.adcoins-box:hover{transform:translateY(-2px)}
+.adcoins-box:hover svg{filter:drop-shadow(0 0 5px rgba(184,212,148,.9))}
+.adbtn{display:flex;justify-content:center;align-items:center;gap:7px;width:100%;margin-bottom:8px}
+.adbtn svg{display:block;flex-shrink:0;filter:drop-shadow(0 1px 2px rgba(0,0,0,.5))}
+.adcnow{text-align:center;font-size:14px;margin-bottom:10px;color:#e9dfc5}
+.adcnow b{color:var(--gold);font-size:16px}
+.adchint{text-align:center;font-style:italic;font-size:14px;line-height:1.4;opacity:.8;margin:2px 0 8px;color:#e9dfc5}
+/* ===== Компактный межстрочный разделитель для абзацев в подсказках ===== */
+.hgap{display:block;height:.75em;line-height:0;font-size:1em}

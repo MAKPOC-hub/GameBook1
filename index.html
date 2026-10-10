@@ -1,0 +1,165 @@
+<!-- index.html -->
+<!-- v2.6.5 -->
+<!-- Проект: GameBook1 -->
+<!-- Функция: разметка игры и подключение файлов -->
+<!-- Изменение: в заголовке окна браузера «книга-игра» заменено на «Игра-книга» -->
+
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>Королевство Морвейн — Игра-книга</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div id="bg"></div>
+<div id="vign"></div>
+<div id="app">
+<div id="hud">
+<div class="hud-l">
+<span class="badge" id="statb">—</span>
+<button class="histbtn" id="histb" title="История">
+<svg viewBox="0 0 32 32" width="24" height="24" aria-hidden="true">
+<path d="M6 5 Q6 3 8 3 L22 3 Q24 3 24 5 L24 27 Q24 29 22 29 L8 29 Q6 29 6 27 Z" fill="#e9dfc5" stroke="#5b422a" stroke-width="1.5"/>
+<path d="M9 8 L21 8 M9 12 L21 12 M9 16 L21 16 M9 20 L16 20" stroke="#5b422a" stroke-width="1.4" stroke-linecap="round" fill="none"/>
+<path d="M9 5 L9 27" stroke="#8a6a44" stroke-width="1.2" opacity=".7"/>
+</svg>
+<span class="pl1">История</span>
+</button>
+</div>
+<div class="hud-c"><span id="hearts"></span></div>
+<div class="hud-r">
+<button class="purse" id="bagb" title="Мешок">
+<svg viewBox="0 0 32 32" width="24" height="24" aria-hidden="true">
+<defs>
+<linearGradient id="bagBodyG" x1="0" y1="0" x2="1" y2="1">
+<stop offset="0" stop-color="#c9a06a"/>
+<stop offset="0.5" stop-color="#a0764a"/>
+<stop offset="1" stop-color="#6b4a2a"/>
+</linearGradient>
+<linearGradient id="bagTopG" x1="0" y1="0" x2="0" y2="1">
+<stop offset="0" stop-color="#d9b888"/>
+<stop offset="1" stop-color="#a0764a"/>
+</linearGradient>
+</defs>
+<path d="M8 16 Q3 22 5 27 Q10 31 16 31 Q22 31 27 27 Q29 22 24 16 Q20 13 16 13 Q12 13 8 16 Z" fill="url(#bagBodyG)" stroke="#3a2410" stroke-width="1.3"/>
+<path d="M10 13 Q11 8 14 7 Q13 6 12 5 Q14 3 16 5 Q18 3 20 5 Q19 6 18 7 Q21 8 22 13 Q19 11 16 11 Q13 11 10 13 Z" fill="url(#bagTopG)" stroke="#3a2410" stroke-width="1.2"/>
+<path d="M11 7 L9 5" stroke="#a0764a" stroke-width="2" stroke-linecap="round"/>
+<path d="M21 7 L23 5" stroke="#a0764a" stroke-width="2" stroke-linecap="round"/>
+<path d="M11 19 Q13 23 12 28" fill="none" stroke="#3a2410" stroke-width="0.6" opacity="0.55"/>
+<path d="M21 19 Q19 23 20 28" fill="none" stroke="#3a2410" stroke-width="0.6" opacity="0.55"/>
+<ellipse cx="12" cy="22" rx="2" ry="4" fill="#ffffff" opacity="0.18"/>
+</svg>
+<span class="pl1">Мешок</span>
+</button>
+<button class="gearbtn" id="setb" title="Настройки">
+<svg viewBox="0 0 48 48" width="34" height="34" aria-hidden="true">
+<defs>
+<linearGradient id="gearWoodG" x1="0" y1="0" x2="0" y2="1">
+<stop offset="0" stop-color="#c9a06a"/>
+<stop offset="0.5" stop-color="#9a6a3a"/>
+<stop offset="1" stop-color="#6b4520"/>
+</linearGradient>
+</defs>
+<g fill="url(#gearWoodG)" stroke="#3a2410" stroke-width="1.5" stroke-linejoin="round">
+<rect x="20" y="2" width="8" height="14" rx="1.5"/>
+<rect x="20" y="2" width="8" height="14" rx="1.5" transform="rotate(45 24 24)"/>
+<rect x="20" y="2" width="8" height="14" rx="1.5" transform="rotate(90 24 24)"/>
+<rect x="20" y="2" width="8" height="14" rx="1.5" transform="rotate(135 24 24)"/>
+<rect x="20" y="2" width="8" height="14" rx="1.5" transform="rotate(180 24 24)"/>
+<rect x="20" y="2" width="8" height="14" rx="1.5" transform="rotate(225 24 24)"/>
+<rect x="20" y="2" width="8" height="14" rx="1.5" transform="rotate(270 24 24)"/>
+<rect x="20" y="2" width="8" height="14" rx="1.5" transform="rotate(315 24 24)"/>
+<circle cx="24" cy="24" r="13"/>
+</g>
+<circle cx="24" cy="24" r="6" fill="#1a0e06" stroke="#000000" stroke-width="1"/>
+<path d="M17 19 Q24 15 31 19" fill="none" stroke="#e8c088" stroke-width="1.2" opacity=".5" stroke-linecap="round"/>
+</svg>
+</button>
+</div>
+</div>
+<div id="panel"></div>
+<div id="cards"></div>
+<div id="quickbar"></div>
+</div>
+<div id="dicewrap"><div id="dice"><div id="dicecube"></div></div><div id="dicebtns"></div></div>
+<div id="toasts"></div>
+<div id="inv" class="ovl hidden"><div class="invbox" id="invbox"></div></div>
+
+<!-- Внешние файлы: иконки -->
+<script src="icons.js"></script>
+
+<!-- Данные: базовое ядро, предметы, враги -->
+<script src="engine_data_core.js"></script>
+<script src="engine_data_items.js"></script>
+<script src="engine_data_foes.js"></script>
+
+<!-- Состояние и утилиты -->
+<script src="engine_state.js"></script>
+<script src="engine_state_cooldown.js"></script>
+<script src="engine_state_toasts.js"></script>
+<script src="engine_state_dice_visual.js"></script>
+<script src="engine_state_hud.js"></script>
+<script src="engine_state_dialogs.js"></script>
+
+<!-- Чекпоинты -->
+<script src="engine_checkpoints_data.js"></script>
+<script src="engine_checkpoints_logic.js"></script>
+
+<!-- Игровая логика: применение предметов, бой, специальные сцены и обработка выбора карты -->
+<script src="engine_items_apply.js"></script>
+<script src="engine_combat.js"></script>
+<script src="engine_story_special.js"></script>
+
+<!-- Отрисовка: помощники, карта, быстрая панель, мешок, персонаж, стартовые, история, экран, ввод -->
+<script src="engine_render_helpers.js"></script>
+<script src="engine_render_card.js"></script>
+<script src="engine_render_quickbar.js"></script>
+<script src="engine_render_inventory.js"></script>
+<script src="engine_render_char.js"></script>
+<script src="engine_render_start_item.js"></script>
+<script src="engine_overlay_history.js"></script>
+<script src="engine_render_screen.js"></script>
+<script src="engine_overlay_input.js"></script>
+
+<!-- Галерея предметов: стили, арты по группам, экспорт, галерея -->
+<script src="itemcards_styles.js"></script>
+<script src="itemcards_art_artifacts.js"></script>
+<script src="itemcards_art_weapons.js"></script>
+<script src="itemcards_art_food.js"></script>
+<script src="itemcards_art_treasures.js"></script>
+<script src="itemcards_art_gear.js"></script>
+<script src="itemcards_art_scrolls.js"></script>
+<script src="itemcards_export.js"></script>
+<script src="itemcards_gallery.js"></script>
+
+<!-- Внешние картинки и настройки -->
+<script src="bg.js"></script>
+<script src="cardbacks.js"></script>
+
+<!-- Сюжет главы 1 -->
+<script src="story_ch1_1.js"></script>
+<script src="story_ch1_1b.js"></script>
+<script src="story_ch1_2.js"></script>
+<script src="story_ch1_3.js"></script>
+<script src="story_ch1_4.js"></script>
+<script src="story_ch1_5.js"></script>
+
+<!-- Сюжет главы 2 -->
+<script src="story_ch2_1.js"></script>
+<script src="story_ch2_2.js"></script>
+<script src="story_ch2_3.js"></script>
+<script src="story_ch2_4.js"></script>
+
+<!-- Сюжет главы 3 -->
+<script src="story_ch3_1.js"></script>
+<script src="story_ch3_2.js"></script>
+<script src="story_ch3_3.js"></script>
+
+<!-- Настройки (в самом конце, как было) -->
+<script src="settings.js"></script>
+
+<script>if(typeof render==='function')render();</script>
+</body>
+</html>

@@ -1,0 +1,17 @@
+// itemcards_art_gear.js
+// v1.0.0
+// Проект: GameBook1
+// Функция: SVG-арты снаряжения (три штуки) — огниво, свеча, верёвка
+// Изменение: файл создан — выделен из itemcards.js (арты снаряжения)
+
+'use strict';
+
+/* ↙️ Используется в: itemcards_export.js (сборка общего ART) */
+window.ART_GEAR = {
+flint:{bg:'radial-gradient(circle at 30% 20%, rgba(255,180,90,.12), transparent 55%), radial-gradient(circle at 70% 85%, rgba(0,0,0,.5), transparent 55%), #302a24',br:'#8a8a84',
+art:`<svg viewBox="0 0 100 140" preserveAspectRatio="xMidYMid meet"><path d="M28 84 L40 66 L62 62 L74 78 L68 96 L40 100 Z" fill="#6a6a64" stroke="#3a3a34" stroke-width="2"/><path d="M40 66 L52 74 L48 88 L34 90 Z" fill="#7a7a74" opacity=".8"/><path d="M30 60 Q50 48 72 58 L70 66 Q50 58 32 68 Z" fill="#8a9098" stroke="#4a5058" stroke-width="2"/><g stroke="#ffb03a" stroke-width="2" stroke-linecap="round"><path d="M52 40 L56 32"/><path d="M60 44 L68 38"/><path d="M46 42 L42 34"/></g><g fill="#ffd23f"><circle cx="58" cy="28" r="1.8"/><circle cx="70" cy="34" r="1.5"/><circle cx="40" cy="30" r="1.5"/></g><path d="M34 78 Q44 74 54 76" fill="none" stroke="#4a4a44" stroke-width="1.2" opacity=".7"/></svg>`},
+candle:{bg:'radial-gradient(circle at 50% 30%, rgba(255,200,120,.18), transparent 60%), radial-gradient(circle at 70% 85%, rgba(0,0,0,.5), transparent 55%), #241c14',br:'#b8a888',
+art:`<svg viewBox="0 0 100 140" preserveAspectRatio="xMidYMid meet"><ellipse cx="50" cy="112" rx="24" ry="7" fill="#8a6a44" stroke="#5b3a20" stroke-width="1.5"/><rect x="42" y="52" width="16" height="58" rx="3" fill="#f0e2c4" stroke="#b8a888" stroke-width="1.5"/><path d="M42 60 Q40 68 42 74 L46 74 L46 60 Z" fill="#f0e2c4" stroke="#b8a888" stroke-width="1"/><path d="M58 66 Q60 74 58 80 L54 80 L54 66 Z" fill="#f0e2c4" stroke="#b8a888" stroke-width="1"/><path d="M50 44 L50 52" stroke="#3a2410" stroke-width="2"/><path d="M50 24 Q58 34 50 46 Q42 34 50 24 Z" fill="#ff9a3a"/><path d="M50 30 Q54 36 50 43 Q46 36 50 30 Z" fill="#ffd23f"/><circle cx="50" cy="36" r="14" fill="#ffcf8a" opacity=".22"/></svg>`},
+rope:{bg:'radial-gradient(circle at 30% 20%, rgba(220,190,140,.12), transparent 55%), radial-gradient(circle at 70% 85%, rgba(0,0,0,.5), transparent 55%), #2e2618',br:'#a88a4a',
+art:`<svg viewBox="0 0 100 140" preserveAspectRatio="xMidYMid meet"><g fill="none" stroke="#c8a868" stroke-width="7" stroke-linecap="round"><ellipse cx="50" cy="60" rx="26" ry="12"/><ellipse cx="50" cy="74" rx="28" ry="13"/><ellipse cx="50" cy="88" rx="26" ry="12"/></g><g fill="none" stroke="#8a6a3a" stroke-width="1.4" opacity=".8"><ellipse cx="50" cy="60" rx="26" ry="12"/><ellipse cx="50" cy="74" rx="28" ry="13"/><ellipse cx="50" cy="88" rx="26" ry="12"/></g><g stroke="#8a6a3a" stroke-width="1.2" opacity=".7"><path d="M30 56 L34 64"/><path d="M44 52 L48 60"/><path d="M58 52 L62 60"/><path d="M28 70 L32 78"/><path d="M44 66 L48 74"/><path d="M60 66 L64 74"/><path d="M30 84 L34 92"/><path d="M46 80 L50 88"/><path d="M62 80 L66 88"/></g><path d="M74 88 Q84 96 80 108 Q78 116 84 122" fill="none" stroke="#c8a868" stroke-width="5" stroke-linecap="round"/><path d="M74 88 Q84 96 80 108 Q78 116 84 122" fill="none" stroke="#8a6a3a" stroke-width="1.2" opacity=".8"/></svg>`}
+};
