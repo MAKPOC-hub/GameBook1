@@ -2,7 +2,7 @@
 // v2.1.19 -> v2.1.20
 // Проект: GameBook1
 // Функция: настройки игры + профиль + иконки валют + диалоги осколков, золота, знаков + реклама + автопрокрутка + начисление тайных символов + валюты в верхней панели
-// Изменение: корона на золотой монете сдвинута вверх на 1.5 пикселя. Раньше её центр по вертикали был в точке 17.5, а центр монеты — в точке 16, из-за чего корона казалась смещённой вниз. Теперь центр короны совпадает с центром монеты
+// Изменение: из окна настроек убрана кнопка «Предметы». Она была нужна только для просмотра артов предметов во время разработки. Новому игроку ни к чему. Сама галерея (itemcards_gallery.js) остаётся в проекте и по-прежнему доступна через консоль браузера командой openItemGallery()
 
 (function(){
 const FZ=[1,1.15,1.3,1.5,1.7];
@@ -103,11 +103,6 @@ return '<svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" style="displ
 +'</g>'
 +'</svg>';
 }
-/* ===== Золотая монета =====
-   В центре — корона, символ королевства Морвейн. Корона сдвинута вверх,
-   чтобы её геометрический центр совпадал с центром монеты (16, 16).
-   Диапазон по X: 11..21, по Y: 12..20 — центр (16, 16).
-   ↙️ Используется в: goldIcon, openGoldDialog (в этом же файле) */
 function goldCoinSVG(sz){
 const s=sz||22;
 const k='gc'+(++_iid);
@@ -253,9 +248,6 @@ setTimeout(fin,700);
 window.showAdGame=showAd;
 
 /* ===== Валюты в верхней панели =====
-   Три кликабельных блока: золото, осколки, знаки. Каждый открывает свой
-   диалог. Функция наполняет контейнер #hudcoins один раз, при загрузке.
-   Значения обновляются через updateHudCurrencies.
    ↘️ Обработчики диалогов — в этом же файле (openGoldDialog, openAdCoinDialog, openMarkDialog)
    ↙️ Вызывается в конце файла */
 function initHudCurrencies(){
@@ -273,8 +265,6 @@ function initHudCurrencies(){
 }
 
 /* ===== Обновление валют в верхней панели =====
-   Вызывается после любого изменения золота, осколков или знаков.
-   Заодно обновляет номера внутри открытых диалогов (если они есть).
    ↙️ Используется в: engine_state_hud.js (hud), cardbacks.js, engine_checkpoints_logic.js, engine_render_inventory.js, engine_render_quickbar.js, а также при покупке в этом файле */
 function updateHudCurrencies(){
   const g=document.getElementById('hud_gold_v');
@@ -291,7 +281,6 @@ function updateHudCurrencies(){
 window.updateHudCurrencies=updateHudCurrencies;
 
 /* ===== Диалог осколков =====
-   Открывается кликом по осколкам в верхней панели.
    ↙️ Обработчик клика — в: initHudCurrencies (в этом же файле) */
 function openAdCoinDialog(){
 const old=document.getElementById('adcoinov');
@@ -314,7 +303,6 @@ ov2.addEventListener('click',function(e){if(e.target===ov2&&ov2.parentNode)docum
 }
 
 /* ===== Диалог золота =====
-   Открывается кликом по золоту в верхней панели.
    ↙️ Обработчик клика — в: initHudCurrencies (в этом же файле) */
 function openGoldDialog(){
 const old=document.getElementById('goldov');
@@ -370,7 +358,6 @@ ov3.addEventListener('click',function(e){if(e.target===ov3&&ov3.parentNode)docum
 }
 
 /* ===== Диалог тайных знаков =====
-   Открывается кликом по знакам в верхней панели.
    ↙️ Обработчик клика — в: initHudCurrencies (в этом же файле) */
 function openMarkDialog(){
 const old=document.getElementById('markov');
@@ -388,7 +375,8 @@ if(ov4.parentNode)document.body.removeChild(ov4);
 ov4.addEventListener('click',function(e){if(e.target===ov4&&ov4.parentNode)document.body.removeChild(ov4);});
 }
 
-/* ===== Окно настроек ===== */
+/* ===== Окно настроек =====
+   Кнопка «Предметы» убрана — она была нужна только во время разработки. */
 const ov=document.createElement('div');
 ov.className='ovl hidden';ov.id='set';
 ov.innerHTML='<div class="invbox"><div class="settitle">'+headerGearSVG(26)+'<span>Настройки</span>'+headerGearSVG(26)+'</div>'
@@ -423,7 +411,7 @@ ov.innerHTML='<div class="invbox"><div class="settitle">'+headerGearSVG(26)+'<sp
 +'</div>'
 +'<div class="srow"><b>Игра</b><div class="sbtns"><button class="btn" id="restartbtn">▶ Начать сначала</button></div></div>'
 +'<div style="text-align:center;margin-top:10px"><button class="btn" id="setc">Закрыть</button></div>'
-+(typeof window.openItemGallery==='function'?'<div style="text-align:center;margin-top:8px"><button class="btn" id="itgbtn">Предметы</button></div>':'')+'</div>';
++'</div>';
 document.body.appendChild(ov);
 
 function fmtAspd(v){
@@ -515,17 +503,7 @@ if(v>STEP_MAX)v=STEP_MAX;
 st.step=v;apply();build();
 });
 
-const itg=ov.querySelector('#itgbtn');
-if(itg){
-itg.addEventListener('click',function(){
-if(typeof window.openItemGallery==='function'){window.openItemGallery();}
-});
-}
-
 /* ===== Начисление тайного символа за достижение =====
-   Знак выдаётся один раз за всю жизнь профиля. Если за это достижение
-   игрок уже получал знак — функция ничего не делает.
-   Отметки о выданных знаках хранятся в P.marksGiven (объект вида id→1).
    ↗️ Вызывается из: engine_checkpoints_logic.js (обёртка go)
    ↙️ Обновляет HUD через updateHudCurrencies */
 window.awardMark=function(id,title){
@@ -539,10 +517,7 @@ window.awardMark=function(id,title){
   return true;
 };
 
-/* Старые имена функций сохранены для совместимости — они теперь вызывают
-   updateHudCurrencies. Так код в cardbacks.js, engine_render_inventory.js,
-   engine_render_quickbar.js и engine_checkpoints_logic.js продолжает работать
-   без изменений. */
+/* Старые имена функций сохранены для совместимости. */
 window.updateMarks=function(){updateHudCurrencies();};
 window.updateAdCoins=function(){updateHudCurrencies();};
 
@@ -555,6 +530,5 @@ window.spendAdCoins=spendAdCoins;
 /* ===== Инициализация ===== */
 apply();
 initHudCurrencies();
-/* Если игра уже запущена (S есть) — сразу проставим актуальные значения. */
 updateHudCurrencies();
 })();
