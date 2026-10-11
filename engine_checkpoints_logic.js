@@ -1,8 +1,8 @@
 // engine_checkpoints_logic.js
-// v1.0.7 -> v1.0.8
+// v1.0.8 -> v1.0.9
 // Проект: GameBook1
 // Функция: логика чекпоинтов — сохранение снимка состояния, проверка открытия, время открытия, возврат к чекпоинту, окно выбора при нуле сердец, открытие меню «История», обёртка над переходом на узел для автосохранения чекпоинта, автовыдачи и удаления предметов, выдача тайных символов за достижения, шаг назад за осколки
-// Изменение: добавлена функция goBack — шаг назад за 1 осколок, максимум на 3 шага. В обёртке go теперь сохраняется снимок состояния перед каждым переходом — до трёх последних. Возврат к чекпоинту очищает историю шагов, потому что это большой прыжок, а не шаг
+// Изменение: в функцию goBack добавлено подтверждение через confirmAction. Раньше шаг назад выполнялся сразу — игрок мог случайно нажать кнопку и потерять осколок. Теперь сначала показывается окно с предупреждением и ценой 1 осколок. Кнопка «Да, шаг назад» красная, кнопка «Отмена» зелёная
 
 'use strict';
 
@@ -144,18 +144,17 @@ function openHistoryMenu(){
 }
 
 /* ===== Шаг назад за 1 осколок =====
-   Берёт последний снимок из S.stepHistory, списывает 1 осколок и
-   восстанавливает состояние. Максимум три снимка — три шага назад.
-   Снимки сохраняются в обёртке go (в этом же файле) перед каждым
-   переходом на новый узел.
+   Перед откатом показывается окно подтверждения confirmAction —
+   чтобы игрок не потерял осколок случайным нажатием. Только после
+   подтверждения списывается 1 осколок и восстанавливается состояние.
+   Берётся последний снимок из S.stepHistory. Максимум три снимка — три
+   шага назад. Снимки сохраняются в обёртке go (в этом же файле) перед
+   каждым переходом на новый узел.
    ⚠️ Восстановление возвращает: HP, максимум HP, золото, инвентарь,
    флаги, перезарядки, размер мешка, стартовый предмет. Значит, все
    предметы, взятые за эти шаги, исчезают из инвентаря — так же, как
    это работает при возврате к чекпоинту.
-   ⚠️ Сам переход на узел снимка выполняется через go() — тогда сработают
-   все проверки узла (saveCp, forceGet, autoGet, removeItem, awardMark).
-   Но при этом новый снимок в историю не пишется: этому мешает флаг
-   _restoringFromHistory.
+   ↗️ confirmAction — в: engine_state_dialogs.js
    ↗️ awardMark — в: settings.js
    ↗️ getAdCoins, spendAdCoins — в: settings.js
    ↙️ Вызывается из: engine_overlay_input.js (кнопка HUD #backb, клавиша Z) */
@@ -165,25 +164,42 @@ function goBack(){
   const COST=1;
   const cur=(typeof window.getAdCoins==='function')?window.getAdCoins():0;
   if(cur<COST){toast('Не хватает осколков: нужно '+COST+', у вас '+cur);return;}
-  if(typeof window.spendAdCoins!=='function'||!window.spendAdCoins(COST)){
-    toast('Не удалось списать осколки');return;
+  /* Внутренняя функция, которая выполнит откат после подтверждения. */
+  function doBack(){
+    if(typeof window.spendAdCoins!=='function'||!window.spendAdCoins(COST)){
+      toast('Не удалось списать осколки');return;
+    }
+    const snap=S.stepHistory.pop();
+    _restoringFromHistory=true;
+    S.hp=snap.hp;
+    S.maxhp=snap.maxhp;
+    S.gold=snap.gold;
+    S.inv=(snap.inv||[]).slice();
+    S.flags=Object.assign({},snap.flags||{});
+    S.itemCd=Object.assign({},snap.itemCd||{});
+    S.bagExt=snap.bagExt||0;
+    S.startItem=snap.startItem||null;
+    S.combat=null;
+    S.lutePrev=null;
+    recalcMaxHp();
+    go(snap.node);
+    _restoringFromHistory=false;
+    toast('Шаг назад (−'+COST+' осколок)');
   }
-  const snap=S.stepHistory.pop();
-  _restoringFromHistory=true;
-  S.hp=snap.hp;
-  S.maxhp=snap.maxhp;
-  S.gold=snap.gold;
-  S.inv=(snap.inv||[]).slice();
-  S.flags=Object.assign({},snap.flags||{});
-  S.itemCd=Object.assign({},snap.itemCd||{});
-  S.bagExt=snap.bagExt||0;
-  S.startItem=snap.startItem||null;
-  S.combat=null;
-  S.lutePrev=null;
-  recalcMaxHp();
-  go(snap.node);
-  _restoringFromHistory=false;
-  toast('Шаг назад (−'+COST+' осколок)');
+  /* Подтверждение через confirmAction. Кнопка подтверждения красная,
+     потому что действие тратит осколок. Кнопка отмены зелёная. */
+  if(typeof window.confirmAction==='function'){
+    const adIconFn=window.adIcon||function(){return '';};
+    window.confirmAction(
+      'Шаг назад?',
+      'Ты вернёшься на предыдущий шаг. Состояние откатится: предметы, взятые за этот шаг, исчезнут. За откат нужно заплатить <b style="color:#ffe9a0">'+adIconFn(16)+' 1</b> осколок.<div class="hgap"></div>Сейчас у тебя: <b style="color:#ffe9a0">'+cur+'</b>.',
+      'Да, шаг назад',
+      doBack
+    );
+  }else{
+    /* Страховка: если окно подтверждения недоступно — сразу откатываем. */
+    doBack();
+  }
 }
 window.goBack=goBack;
 
