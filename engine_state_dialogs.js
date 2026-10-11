@@ -1,8 +1,8 @@
 // engine_state_dialogs.js
-// v1.0.7
+// v1.0.7 -> v1.0.8
 // Проект: GameBook1
-// Функция: универсальные модальные окна — подтверждение покупки, информационное окно, окно «Мешок полон», окно принудительной выдачи ключевого предмета, окно результата броска с кубиком, окно находки
-// Содержит функцию покупки ячейки прямо из окна переполнения, акцентную зелёную кнопку «Назад» и серую «Продолжить»
+// Функция: универсальные модальные окна — подтверждение покупки, информационное окно, окно «Мешок полон», окно принудительной выдачи ключевого предмета, окно результата броска с кубиком, окно находки, окно полученных предметов
+// Изменение: добавлена функция showItemsReceived — окно с описанием всех полученных предметов. Показывается после того, как игрок сам выбрал взять предмет. У каждого предмета картинка, название и полное описание. Если вместе с предметами было получено золото — внизу добавляется строка «+N золотых». Это правило 10.10
 
 'use strict';
 
@@ -19,7 +19,14 @@
   +'.rollres-text b{color:#ffe9a0}'
   +'.itemrow{display:flex;flex-wrap:wrap;justify-content:center;align-items:flex-start;gap:12px;margin:8px 0 12px}'
   +'.itemrow .itemcell{width:88px;flex:0 0 auto;text-align:center}'
-  +'.btn-acc{background:linear-gradient(#8fae62,#6d8c4a)!important;border-color:#b8d494!important;color:#10160c!important;font-weight:700}';
+  +'.btn-acc{background:linear-gradient(#8fae62,#6d8c4a)!important;border-color:#b8d494!important;color:#10160c!important;font-weight:700}'
+  /* Окно полученных предметов: у каждого предмета блок с разделителем снизу. */
+  +'.received-item{border-bottom:1px solid rgba(122,90,56,.35);padding-bottom:14px;margin-bottom:14px}'
+  +'.received-item:last-of-type{border-bottom:none;padding-bottom:0}'
+  +'.received-item .det-preview{margin:0 0 8px}'
+  +'.received-item .det-preview .gbp{width:130px}'
+  +'.received-name{text-align:center;font-weight:700;color:#ffe9a0;font-size:calc(17px*var(--fz));margin-bottom:6px}'
+  +'.received-desc{text-align:center;font-size:calc(14px*var(--fz));line-height:1.5;opacity:.92;color:#e9dfc5}';
   document.head.appendChild(st);
 })();
 
@@ -86,9 +93,56 @@ function showRollResult(opts,onClose){
 }
 window.showRollResult=showRollResult;
 
+/* ===== Окно полученных предметов =====
+   Показывается, когда игрок сам выбрал взять предмет. У каждого предмета
+   картинка, название и полное описание. Если вместе с предметами было
+   получено золото, внизу добавляется строка «+N золотых».
+   Кнопка «Далее» ведёт дальше. Окно нельзя закрыть кликом по фону —
+   игрок должен осознанно нажать «Далее».
+   ↗️ ITEMS, ItemCards — в: engine_data_items.js, itemcards_export.js
+   ↙️ Используется в: engine_story_special.js (play — блок c.pick)
+   ↘️ Связано с правилом 10.10 */
+function showItemsReceived(items,gold,onClose){
+  const old=document.getElementById('itemsreceived');
+  if(old&&old.parentNode)old.parentNode.removeChild(old);
+  const ov=document.createElement('div');
+  ov.className='ovl';ov.id='itemsreceived';
+
+  let body='<h3>Получено</h3>';
+  items.forEach(function(id){
+    const info=(ITEMS&&ITEMS[id])?ITEMS[id]:{n:String(id),d:''};
+    const a=(window.ItemCards&&typeof window.ItemCards.get==='function')?window.ItemCards.get(id):null;
+    let preview='';
+    if(a){
+      preview='<div class="det-preview"><div class="gbp" style="--cbg:'+a.bg+';--cbr:'+a.br+'"><div class="gbp-art">'+a.art+'</div></div></div>';
+    }else{
+      preview='<div class="det-preview"><div class="gbp" style="width:130px"><div class="gbp-art" style="font-size:52px;color:#e9dfc5">'+info.n.charAt(0)+'</div></div></div>';
+    }
+    body+='<div class="received-item">'
+      +preview
+      +'<div class="received-name">'+info.n+'</div>'
+      +'<div class="received-desc">'+info.d+'</div>'
+      +'</div>';
+  });
+  if(gold){
+    body+='<div style="text-align:center;font-weight:700;color:#ffe9a0;font-size:calc(15px*var(--fz));margin-top:6px">+'+gold+' золотых</div>';
+  }
+  body+='<div style="display:flex;justify-content:center;margin-top:16px">'
+    +'<button class="btn btn-acc" id="ir_ok">Далее</button>'
+    +'</div>';
+
+  ov.innerHTML='<div class="invbox detbox" style="max-width:420px">'+body+'</div>';
+  document.body.appendChild(ov);
+  function close(){
+    if(ov.parentNode)ov.parentNode.removeChild(ov);
+    if(typeof onClose==='function')onClose();
+  }
+  ov.querySelector('#ir_ok').addEventListener('click',close);
+  /* Клик по фону НЕ закрывает окно — игрок должен осознанно нажать «Далее». */
+}
+window.showItemsReceived=showItemsReceived;
+
 /* ===== Покупка ячейки мешка из окна переполнения =====
-   Списывает 3 осколка, увеличивает bagExt на 1, сохраняет.
-   Закрывает все окна переполнения и перерисовывает экран.
    ↗️ getAdCoins, spendAdCoins — в: settings.js
    ↙️ Используется в: showPickupResult, showBagFullDialog (в этом же файле) */
 function _tryBuySlotFromOverflow(){
@@ -104,7 +158,6 @@ function _tryBuySlotFromOverflow(){
     S.bagExt=(S.bagExt||0)+1;
     save();
     toast('Новая ячейка мешка открыта! (−'+COST+' осколка)');
-    /* Закрываем все возможные окна переполнения. */
     const pk=document.getElementById('pickupresult');
     if(pk&&pk.parentNode)pk.parentNode.removeChild(pk);
     const bf=document.getElementById('bagfulldialog');
@@ -123,11 +176,8 @@ function _tryBuySlotFromOverflow(){
 }
 
 /* ===== Окно находки, когда места в мешке не хватает =====
-   Три кнопки:
-   — «Назад» (акцентная, зелёная): остаться на узле. Ничего не выдаётся.
-   — «Купить ячейку мешка — 3 осколка»: списывает осколки, увеличивает
-     мешок, закрывает окно и перерисовывает узел.
-   — «Продолжить» (серая): забрать что помещается и уйти дальше.
+   Три кнопки: «Назад» (зелёная), «Купить ячейку» (если осколков хватает),
+   «Продолжить» (серая).
    ↙️ Используется в: engine_story_special.js (play — блок c.pick) */
 function showPickupResult(items,free,onBack,onContinue){
   const old=document.getElementById('pickupresult');
@@ -197,7 +247,6 @@ function showPickupResult(items,free,onBack,onContinue){
 window.showPickupResult=showPickupResult;
 
 /* ===== Универсальный диалог подтверждения покупки =====
-   ↗️ adIcon — в: settings.js
    ↙️ Используется в: engine_state_cooldown.js, engine_render_quickbar.js, engine_render_inventory.js, engine_render_start_item.js, settings.js, cardbacks.js, _tryBuySlotFromOverflow (в этом же файле) */
 function confirmBuy(name, cost, onConfirm){
   const old=document.getElementById('buyconfirm');
@@ -256,7 +305,6 @@ window.showInfo=showInfo;
 /* ===== Окно «Мешок полон» (одиночный предмет) =====
    Три кнопки: «Назад» (зелёная), «Купить ячейку» (если осколков хватает),
    «Продолжить» (серая).
-   ↘️ _tryBuySlotFromOverflow — в этом же файле
    ↙️ Используется в: engine_story_special.js (play — ветка checkTake),
       engine_checkpoints_logic.js (обёртка go — авто-выдача при autoGet) */
 function showBagFullDialog(itemId, onBack, onContinue){
@@ -311,10 +359,7 @@ window.showBagFullDialog=showBagFullDialog;
 
 /* ===== Окно принудительной выдачи ключевого предмета =====
    Окно нельзя закрыть, не сделав выбор. Игрок либо выбрасывает один
-   предмет (тогда ключевой занимает его место), либо покупает ячейку
-   за 3 осколка. Перфокарты выбрасывать нельзя.
-   ↗️ ITEMS, ItemCards — в: engine_data_items.js, itemcards_export.js
-   ↗️ getAdCoins, spendAdCoins — в: settings.js
+   предмет, либо покупает ячейку за 3 осколка. Перфокарты выбрасывать нельзя.
    ↙️ Используется в: engine_checkpoints_logic.js (обёртка go — ветка forceGet) */
 function showForceGetDialog(itemId, onContinue){
   const old=document.getElementById('forcegetdialog');

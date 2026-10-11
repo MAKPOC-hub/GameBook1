@@ -1,8 +1,8 @@
 // engine_story_special.js
-// v1.1.13
+// v1.1.13 -> v1.1.14
 // Проект: GameBook1
 // Функция: специальные сцены и обработка выбора карты — отдых, сон, урон, рестарт, конец главы, возврат к чекпоинту, бросок стартового предмета, галерея стартовых, покупка, финализация карты, главный обработчик выбора
-// Содержит исправленную логику находок: при переполнении открывается окно showPickupResult с кнопкой покупки ячейки
+// Изменение: в блоке находки (c.pick) после выдачи предметов открывается окно showItemsReceived с картинками, названиями и полными описаниями. Это правило 10.10: игрок должен увидеть, что он взял. Также в блоке проверки с предметом (checkTake) при успехе в окно результата броска добавлено полное описание полученного предмета — раньше там была только картинка
 
 'use strict';
 
@@ -231,7 +231,10 @@ function play(c){
     else{toast('У вас нет: '+ITEMS[c.use].n);return;}
   }
 
-  /* ===== Проверка с предметом ===== */
+  /* ===== Проверка с предметом =====
+     После успешного броска предмет идёт в мешок. В окне результата броска
+     показывается картинка предмета и полное описание — чтобы игрок понял,
+     что взял. Это правило 10.10.5. */
   if(c.checkTake){
     const target=c.checkTake;
     const item=c.take;
@@ -274,6 +277,7 @@ function play(c){
       if(gotItem){
         text+='<div class="hgap"></div><b>Получено: '+ITEMS[item].n+'</b>';
         text+=_itemIconHTML(item,110);
+        text+='<div class="hgap"></div>'+ITEMS[item].d;
       }else if(bagFull){
         text+='<div class="hgap"></div><b>Мешок полон — '+ITEMS[item].n+' остаётся в нише</b>';
       }
@@ -372,7 +376,10 @@ function play(c){
     return;
   }
 
-  /* ===== Обычные находки в узле ===== */
+  /* ===== Обычные находки в узле =====
+     Игрок сам выбрал взять предмет — значит, показываем окно showItemsReceived
+     с картинкой, названием и полным описанием каждого полученного предмета.
+     Это правило 10.10. */
   if(c.pick){
     const items=(c.pick.items||[]);
     const gold=c.pick.gold||0;
@@ -380,14 +387,18 @@ function play(c){
     const totalNeed=items.length;
     /* Случай 1: мест хватает на все предметы. */
     if(totalNeed<=free){
-      if(gold){S.gold+=gold;toast('+'+gold+' золотых');}
+      if(gold){S.gold+=gold;}
       items.forEach(function(id){
         S.inv.push(id);
         recalcMaxHp();
-        toast('Получено: '+ITEMS[id].n);
       });
       save();
-      _finalizeCard(c);
+      if(typeof window.showItemsReceived==='function'&&items.length>0){
+        window.showItemsReceived(items,gold,function(){_finalizeCard(c);});
+      }else{
+        if(gold)toast('+'+gold+' золотых');
+        _finalizeCard(c);
+      }
       return;
     }
     /* Случай 2: мест не хватает — окно с выбором и покупкой ячейки. */
@@ -397,31 +408,43 @@ function play(c){
         free,
         function(){ render(); },
         function(){
+          const got=[];
           for(let i=0;i<items.length;i++){
             if(S.inv.length<invMax()){
               S.inv.push(items[i]);
               recalcMaxHp();
-              toast('Получено: '+ITEMS[items[i]].n);
+              got.push(items[i]);
             }
           }
-          if(gold){S.gold+=gold;toast('+'+gold+' золотых');}
+          if(gold){S.gold+=gold;}
           save();
-          _finalizeCard(c);
+          if(typeof window.showItemsReceived==='function'&&got.length>0){
+            window.showItemsReceived(got,gold,function(){_finalizeCard(c);});
+          }else{
+            if(gold)toast('+'+gold+' золотых');
+            _finalizeCard(c);
+          }
         }
       );
       return;
     }
     /* Страховка. */
-    if(gold){S.gold+=gold;toast('+'+gold+' золотых');}
+    if(gold){S.gold+=gold;}
+    const got2=[];
     for(let i=0;i<items.length;i++){
       if(S.inv.length<invMax()){
         S.inv.push(items[i]);
         recalcMaxHp();
-        toast('Получено: '+ITEMS[items[i]].n);
+        got2.push(items[i]);
       }
     }
     save();
-    _finalizeCard(c);
+    if(typeof window.showItemsReceived==='function'&&got2.length>0){
+      window.showItemsReceived(got2,gold,function(){_finalizeCard(c);});
+    }else{
+      if(gold)toast('+'+gold+' золотых');
+      _finalizeCard(c);
+    }
     return;
   }
 
