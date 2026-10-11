@@ -1,8 +1,8 @@
 // engine_state_dialogs.js
-// v1.0.10 -> v1.0.11
+// v1.0.11 -> v1.0.12
 // Проект: GameBook1
 // Функция: универсальные модальные окна — подтверждение покупки, подтверждение опасного действия, информационное окно, окно «Мешок полон», окно принудительной выдачи ключевого предмета, окно результата броска с кубиком, окно находки, окно полученных предметов
-// Изменение: в функцию confirmAction добавлены необязательные параметры: okAccent (делать ли подтверждение зелёной акцентной кнопкой вместо красной) и reverse (порядок кнопок — отмена слева, подтверждение справа). Раньше кнопка подтверждения всегда была красной и стояла слева. Теперь для окна шага назад можно включить акцентный вид и обратный порядок
+// Изменение: перерисован кубик в окне результата броска. Раньше боковые грани были светлыми и плохо отличались от верхней — казалось, что видна только верхняя грань. Теперь левая боковая сделана средне-светлой, правая — тёмной (в тени), добавлены внутренние фаски вдоль рёбер, а тень под кубиком уменьшена. Точки на верхней грани размещены по сетке 3×3 с учётом изометрии и получили блик
 
 'use strict';
 
@@ -30,33 +30,55 @@
 })();
 
 /* ===== Рисунок кубика, лежащего на столе =====
+   Кубик нарисован в изометрии. Видны все три грани: верхняя с точками
+   (выпавшее число), левая боковая и правая боковая. Левая освещена,
+   правая в тени — между гранями хороший контраст, объём читается.
+   Точки на верхней грани разложены по сетке 3×3 с учётом изометрии.
    ↙️ Используется в: showRollResult (в этом же файле) */
 function _rollDiceFaceSVG(value){
-  const dots={
-    1:[[1,1]],
-    2:[[0,0],[2,2]],
-    3:[[0,0],[1,1],[2,2]],
-    4:[[0,0],[2,0],[0,2],[2,2]],
-    5:[[0,0],[2,0],[1,1],[0,2],[2,2]],
-    6:[[0,0],[0,1],[0,2],[2,0],[2,1],[2,2]]
+  /* Схемы точек как у настоящего кубика: номера позиций в сетке 3×3. */
+  const schemes={
+    1:[5],
+    2:[3,7],
+    3:[3,5,7],
+    4:[1,3,7,9],
+    5:[1,3,5,7,9],
+    6:[1,3,4,6,7,9]
   };
+  /* Позиции в местной системе верхней грани (u, v от 0 до 1).
+     Отступ от края 0.2 — точки не прижимаются к обводке. */
+  const positions=[
+    [0.2,0.2],[0.5,0.2],[0.8,0.2],
+    [0.2,0.5],[0.5,0.5],[0.8,0.5],
+    [0.2,0.8],[0.5,0.8],[0.8,0.8]
+  ];
   const v=Math.max(1,Math.min(6,parseInt(value,10)||1));
-  const arr=dots[v];
-  const scale=0.55;
+  const list=schemes[v];
   let dotsSvg='';
-  arr.forEach(function(d){
-    const u=(d[0]-1)*scale;
-    const vv=(d[1]-1)*scale;
-    const sx=50+(u-vv)*17.5;
-    const sy=45+(u+vv)*10;
-    dotsSvg+='<circle cx="'+sx.toFixed(1)+'" cy="'+sy.toFixed(1)+'" r="2.6" fill="#2f2417"/>';
+  list.forEach(function(n){
+    const p=positions[n-1];
+    const u=p[0], vv=p[1];
+    /* Изометрическая проекция: ромб с центром (50, 42),
+       горизонтальная полуширина 36, вертикальная полувысота 20. */
+    const sx=50+(u-vv)*36;
+    const sy=42+(u+vv-1)*20;
+    dotsSvg+='<circle cx="'+sx.toFixed(1)+'" cy="'+sy.toFixed(1)+'" r="3" fill="#2f2417"/>';
+    dotsSvg+='<circle cx="'+(sx-0.8).toFixed(1)+'" cy="'+(sy-0.8).toFixed(1)+'" r="1" fill="#6a5a40" opacity="0.65"/>';
   });
   return '<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">'
-    +'<ellipse cx="50" cy="87" rx="40" ry="6" fill="rgba(0,0,0,.45)"/>'
-    +'<polygon points="15,45 50,65 50,86 15,66" fill="#d9c08a" stroke="#5b422a" stroke-width="1.5" stroke-linejoin="round"/>'
-    +'<polygon points="50,65 85,45 85,66 50,86" fill="#a88a55" stroke="#5b422a" stroke-width="1.5" stroke-linejoin="round"/>'
-    +'<polygon points="50,25 85,45 50,65 15,45" fill="#f7ead0" stroke="#5b422a" stroke-width="1.5" stroke-linejoin="round"/>'
-    +'<polygon points="50,29 81,45 50,61 19,45" fill="none" stroke="#c8a868" stroke-width=".8" opacity=".6"/>'
+    /* Тень под кубиком. Узкая — чтобы не сливалась с боковыми гранями. */
+    +'<ellipse cx="50" cy="91" rx="34" ry="4" fill="rgba(0,0,0,.5)"/>'
+    /* Левая боковая грань — освещена. */
+    +'<polygon points="14,42 50,62 50,86 14,66" fill="#c9a86a" stroke="#3a2410" stroke-width="1.4" stroke-linejoin="round"/>'
+    /* Правая боковая грань — в тени. */
+    +'<polygon points="50,62 86,42 86,66 50,86" fill="#7a5a2a" stroke="#3a2410" stroke-width="1.4" stroke-linejoin="round"/>'
+    /* Верхняя грань — самая светлая. */
+    +'<polygon points="50,22 86,42 50,62 14,42" fill="#f7ead0" stroke="#3a2410" stroke-width="1.4" stroke-linejoin="round"/>'
+    /* Внутренняя фаска верхней грани: тонкая светлая линия вдоль рёбер. */
+    +'<polygon points="50,26 81,42 50,58 19,42" fill="none" stroke="#d9c08a" stroke-width="0.8" opacity="0.7"/>'
+    /* Внутренние фаски боковых граней — для объёма. */
+    +'<path d="M18 44 L18 64 M22 66 L22 82" stroke="#e0c898" stroke-width="0.6" opacity="0.4" fill="none"/>'
+    +'<path d="M82 44 L82 64 M78 66 L78 82" stroke="#4a3420" stroke-width="0.6" opacity="0.5" fill="none"/>'
     +dotsSvg
     +'</svg>';
 }
@@ -134,19 +156,8 @@ function showItemsReceived(items,gold,onClose){
 window.showItemsReceived=showItemsReceived;
 
 /* ===== Универсальное подтверждение опасного действия =====
-   Открывает окно с предупреждением. Клик по фону окно НЕ закрывает:
-   игрок должен сделать осознанный выбор.
-   Опции (объект opts, все необязательные):
-   — okAccent: true — кнопка подтверждения будет зелёной акцентной,
-     а не красной. Для действий, которые не разрушительны, но тратят
-     ресурс (например, шаг назад за осколок).
-   — reverse: true — порядок кнопок меняется: сначала «Отмена» (слева),
-     потом подтверждение (справа). По умолчанию подтверждение слева,
-     отмена справа.
-   По умолчанию (без опций) — подтверждение красное слева, отмена
-   зелёная справа. Это вид для опасных разрушительных действий
-   (выкидывание предмета).
-   ⚠️ z-index окна — 60. Выше всех остальных оверлеев.
+   ↘️ Опции: okAccent — зелёная кнопка подтверждения; reverse — обратный
+   порядок кнопок (отмена слева, подтверждение справа).
    ↙️ Используется в: engine_render_inventory.js (кнопка «Выкинуть»),
       showForceGetDialog (выбор предмета для замены в этом же файле),
       engine_checkpoints_logic.js (goBack — шаг назад) */
@@ -157,10 +168,9 @@ function confirmAction(title,text,okLabel,onConfirm,opts){
   const ov=document.createElement('div');
   ov.className='ovl';ov.id='actionconfirm';
   ov.style.zIndex='60';
-  let okStyle,noStyle;
+  let okStyle='',noStyle='';
   if(options.okAccent){
-    okStyle='';
-    noStyle='';
+    okStyle='';noStyle='';
   }else{
     okStyle='background:linear-gradient(#8a3a3a,#6a2020);border-color:#c96a5a;color:#ffd6cd;font-weight:700';
     noStyle='';
@@ -187,8 +197,7 @@ function confirmAction(title,text,okLabel,onConfirm,opts){
 }
 window.confirmAction=confirmAction;
 
-/* ===== Покупка ячейки мешка из окна переполнения =====
-   ↙️ Используется в: showPickupResult, showBagFullDialog (в этом же файле) */
+/* ===== Покупка ячейки мешка из окна переполнения ===== */
 function _tryBuySlotFromOverflow(){
   const COST=3;
   const MAXEXT=5;
@@ -219,8 +228,7 @@ function _tryBuySlotFromOverflow(){
   return true;
 }
 
-/* ===== Окно находки, когда места в мешке не хватает =====
-   ↙️ Используется в: engine_story_special.js (play — блок c.pick) */
+/* ===== Окно находки, когда места в мешке не хватает ===== */
 function showPickupResult(items,free,onBack,onContinue){
   const old=document.getElementById('pickupresult');
   if(old&&old.parentNode)old.parentNode.removeChild(old);
@@ -288,8 +296,7 @@ function showPickupResult(items,free,onBack,onContinue){
 }
 window.showPickupResult=showPickupResult;
 
-/* ===== Универсальный диалог подтверждения покупки =====
-   ↙️ Используется в: engine_state_cooldown.js, engine_render_quickbar.js, engine_render_inventory.js, engine_render_start_item.js, settings.js, cardbacks.js, _tryBuySlotFromOverflow (в этом же файле) */
+/* ===== Универсальный диалог подтверждения покупки ===== */
 function confirmBuy(name, cost, onConfirm){
   const old=document.getElementById('buyconfirm');
   if(old&&old.parentNode)old.parentNode.removeChild(old);
@@ -321,8 +328,7 @@ function confirmBuy(name, cost, onConfirm){
 }
 window.confirmBuy=confirmBuy;
 
-/* ===== Универсальное информационное окно =====
-   ↙️ Используется в: engine_story_special.js (play — при c.toastMsg) */
+/* ===== Универсальное информационное окно ===== */
 function showInfo(text, onClose){
   const old=document.getElementById('infodialog');
   if(old&&old.parentNode)old.parentNode.removeChild(old);
@@ -344,9 +350,7 @@ function showInfo(text, onClose){
 }
 window.showInfo=showInfo;
 
-/* ===== Окно «Мешок полон» (одиночный предмет) =====
-   ↙️ Используется в: engine_story_special.js (play — ветка checkTake),
-      engine_checkpoints_logic.js (обёртка go — авто-выдача при autoGet) */
+/* ===== Окно «Мешок полон» (одиночный предмет) ===== */
 function showBagFullDialog(itemId, onBack, onContinue){
   const old=document.getElementById('bagfulldialog');
   if(old&&old.parentNode)old.parentNode.removeChild(old);
@@ -397,12 +401,7 @@ function showBagFullDialog(itemId, onBack, onContinue){
 }
 window.showBagFullDialog=showBagFullDialog;
 
-/* ===== Окно принудительной выдачи ключевого предмета =====
-   Окно нельзя закрыть, не сделав выбор. Игрок либо выбрасывает один
-   предмет (с подтверждением — чтобы не потерять случайно), либо покупает
-   ячейку за 3 осколка. Перфокарты выбрасывать нельзя.
-   ↗️ confirmAction — в этом же файле
-   ↙️ Используется в: engine_checkpoints_logic.js (обёртка go — ветка forceGet) */
+/* ===== Окно принудительной выдачи ключевого предмета ===== */
 function showForceGetDialog(itemId, onContinue){
   const old=document.getElementById('forcegetdialog');
   if(old&&old.parentNode)old.parentNode.removeChild(old);
@@ -415,9 +414,7 @@ function showForceGetDialog(itemId, onContinue){
   if(a){
     preview='<div style="display:flex;justify-content:center;margin:4px 0 12px"><div class="gbp" style="--cbg:'+a.bg+';--cbr:'+a.br+';width:110px"><div class="gbp-art">'+a.art+'</div></div></div>';
   }
-  function isProtected(id){
-    return id.indexOf('punch_')===0;
-  }
+  function isProtected(id){return id.indexOf('punch_')===0;}
   function buildBody(){
     const cells=[];
     S.inv.forEach(function(id){cells.push(id);});
@@ -439,8 +436,7 @@ function showForceGetDialog(itemId, onContinue){
     });
     grid+='</div>';
     const cur=(typeof window.getAdCoins==='function')?window.getAdCoins():0;
-    const maxExt=5;
-    const canBuySlot=((S.bagExt||0)<maxExt)&&(cur>=3);
+    const canBuySlot=((S.bagExt||0)<5)&&(cur>=3);
     return '<h3 style="margin-bottom:6px">Тебе нужен этот предмет</h3>'
       +preview
       +'<div style="text-align:center;font-size:15px;line-height:1.5;margin:8px 0">'
