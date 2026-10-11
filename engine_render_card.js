@@ -1,8 +1,8 @@
 // engine_render_card.js
-// v1.0.4 -> v1.0.5
+// v1.0.5 -> v1.0.6
 // Проект: GameBook1
 // Функция: построение одной карты выбора — с учётом боя, цены, подсказок по предмету, подсказок компаса, правила броска
-// Изменение: удалена временная панель диагностики, которая помогала найти причину на телефоне. Причина оказалась не в коде, а в кэше GitHub — сервер отдавал старые версии файлов. Логика нажатия остаётся прежней: три события click, pointerup и touchend плюс принудительный захват указателя при касании
+// Изменение: подсказка компаса увеличена с 60 до 100 символов. Теперь текст обрезается по последнему пробелу — слово не рвётся посередине. Многоточие добавляется только если текст действительно длиннее лимита
 
 'use strict';
 
@@ -33,14 +33,32 @@ function buildCard(c,i,artHTML){
     if(have&&!ready)txt+='<div class="hgap"></div>(перезарядка: '+cdLeft(id)+' ходов)';
     applyHint='<div class="card-apply">'+txt+'</div>';
   }
-  /* Подсказка активного Компаса — тоже внутри карты */
+  /* ===== Подсказка активного Компаса =====
+     Берётся текст целевого узла (куда ведёт карта). Из него убираются
+     HTML-теги и переносы строк. Если длина больше 100 символов — текст
+     обрезается по последнему пробелу, чтобы слово не рвалось, и в конце
+     ставится многоточие. Если текст задан функцией (зависит от флагов
+     игрока) — показывается многоточие, потому что заранее его не построить.
+     ↙️ Используется в: карта с флагом compassActive (в этом же файле) */
   let compassHint='';
   if(S.flags.compassActive===S.node&&c.go){
     const target=NODES[c.go];
     if(target){
-      const t=(typeof target.t==='function')?'…':String(target.t);
-      const short=t.replace(/<[^>]+>/g,'').replace(/\n/g,' ').slice(0,60);
-      compassHint='<div class="card-compass">'+ico('compass',11)+short+(t.length>60?'…':'')+'</div>';
+      let short='';
+      if(typeof target.t==='function'){
+        short='…';
+      }else{
+        short=String(target.t).replace(/<[^>]+>/g,'').replace(/\n/g,' ').trim();
+        if(short.length>100){
+          let cut=short.slice(0,100);
+          const lastSpace=cut.lastIndexOf(' ');
+          if(lastSpace>0){
+            cut=cut.slice(0,lastSpace);
+          }
+          short=cut+'…';
+        }
+      }
+      compassHint='<div class="card-compass">'+ico('compass',11)+short+'</div>';
     }
   }
   /* ⚠️ Подсказка о правиле броска — отдельный блок внутри карты под .ct.
@@ -62,53 +80,9 @@ function buildCard(c,i,artHTML){
   const num=document.createElement('div');num.className='cn';num.textContent=(i+1);
   w.appendChild(d);
   w.appendChild(num);
-
-  /* ===== Перехват нажатия по карте =====
-     ⚠️ Подписываемся сразу на три события — click, pointerup и touchend.
-     Разные мобильные браузеры создают разные события при тапе пальцем:
-     некоторые создают click, некоторые только pointerup, некоторые только
-     touchend. Чтобы карта срабатывала в любом браузере, слушаем все три
-     и защищаемся от двойного срабатывания через метку времени. */
-
-  /* Принудительный захват указателя при касании.
-     Если браузер сам не передаёт событие отпускания (pointerup/pointercancel
-     приходит на другой элемент), setPointerCapture заставляет браузер
-     направлять все события по этому указателю именно на нашу карту. */
-  w.addEventListener('pointerdown',function(e){
-    try{w.setPointerCapture(e.pointerId);}catch(err){}
-  });
-
-  /* Запоминаем, где палец коснулся карты. Нужно, чтобы отличить тап
-     (палец остался почти на месте) от начала жеста скролла
-     (палец ушёл далеко в сторону). */
-  let _touchStartX=0,_touchStartY=0;
-  w.addEventListener('touchstart',function(e){
-    if(e.touches&&e.touches[0]){
-      _touchStartX=e.touches[0].clientX;
-      _touchStartY=e.touches[0].clientY;
-    }
-  },{passive:true});
-
-  /* Общая функция обработки. Одна метка времени — одно срабатывание карты. */
-  let _tapHandledAt=0;
-  function _cardTapHandler(e){
-    if(e&&e.type==='pointerup'&&e.pointerType==='mouse'&&e.button!==0)return;
-    const now=Date.now();
-    if(now-_tapHandledAt<500)return;
-    _tapHandledAt=now;
+  w.addEventListener('pointerup',function(e){
+    if(e.pointerType==='mouse'&&e.button!==0)return;
     play(c);
-  }
-
-  w.addEventListener('click',_cardTapHandler);
-  w.addEventListener('pointerup',_cardTapHandler);
-  w.addEventListener('touchend',function(e){
-    if(e.changedTouches&&e.changedTouches[0]){
-      const dx=Math.abs(e.changedTouches[0].clientX-_touchStartX);
-      const dy=Math.abs(e.changedTouches[0].clientY-_touchStartY);
-      if(dx>10||dy>10)return;
-    }
-    _cardTapHandler(e);
   });
-
   return w;
 }
