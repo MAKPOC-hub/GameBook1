@@ -1,19 +1,14 @@
 // engine_checkpoints_logic.js
-// v1.0.8 -> v1.0.9
+// v1.0.9 -> v1.0.10
 // Проект: GameBook1
 // Функция: логика чекпоинтов — сохранение снимка состояния, проверка открытия, время открытия, возврат к чекпоинту, окно выбора при нуле сердец, открытие меню «История», обёртка над переходом на узел для автосохранения чекпоинта, автовыдачи и удаления предметов, выдача тайных символов за достижения, шаг назад за осколки
-// Изменение: в функцию goBack добавлено подтверждение через confirmAction. Раньше шаг назад выполнялся сразу — игрок мог случайно нажать кнопку и потерять осколок. Теперь сначала показывается окно с предупреждением и ценой 1 осколок. Кнопка «Да, шаг назад» красная, кнопка «Отмена» зелёная
+// Изменение: в вызове confirmAction из goBack переданы опции okAccent и reverse. Теперь кнопка «Да, шаг назад» зелёная акцентная и стоит справа, кнопка «Отмена» обычная коричневая и стоит слева
 
 'use strict';
 
-/* Флаг на время восстановления из истории шагов. Пока он true, обёртка go
-   не записывает новый снимок в историю — иначе откат «съел» бы предыдущий
-   снимок и восстановление оказалось бы невозможно. */
 let _restoringFromHistory=false;
 
 /* ===== Сохранение чекпоинта =====
-   Копирует ключевые параметры S в S.checkpoints[id].
-   Перезапись: если уже есть — заменяется новым состоянием (см. Правила.txt, 6.4).
    ↙️ Вызывается из: обёртки go (в этом же файле) при заходе на узел-чекпоинт */
 function saveCheckpoint(id){
   if(!S)return;
@@ -49,10 +44,6 @@ function getCheckpointTime(id){
 }
 
 /* ===== Возврат к чекпоинту =====
-   Восстанавливает S из сохранённого состояния чекпоинта.
-   Проверка: если чекпоинт не сохранён — toast и выход.
-   ⚠️ История шагов очищается: возврат к чекпоинту — это большой прыжок,
-   а не шаг назад. После возврата игрок начинает путь заново от чекпоинта.
    ↗️ getCheckpoint, getCheckpointList — в: engine_checkpoints_data.js
    ↙️ Вызывается из: engine_overlay_history.js (клик по плитке), showCheckpointChoice (в этом же файле) */
 function returnToCheckpoint(id){
@@ -81,9 +72,6 @@ function returnToCheckpoint(id){
 }
 
 /* ===== Окно выбора чекпоинта при HP = 0 =====
-   Показывает список открытых чекпоинтов. Клик → returnToCheckpoint(id).
-   Если открытых нет — откат на cp1 (Опушка).
-   ↗️ .hgap — в: style.css
    ↙️ Вызывается из: engine_combat.js (afterRound), engine_story_special.js (play, doSpecial) при S.hp<=0 */
 function showCheckpointChoice(){
   const old=document.getElementById('cpchoice');
@@ -145,17 +133,14 @@ function openHistoryMenu(){
 
 /* ===== Шаг назад за 1 осколок =====
    Перед откатом показывается окно подтверждения confirmAction —
-   чтобы игрок не потерял осколок случайным нажатием. Только после
-   подтверждения списывается 1 осколок и восстанавливается состояние.
-   Берётся последний снимок из S.stepHistory. Максимум три снимка — три
-   шага назад. Снимки сохраняются в обёртке go (в этом же файле) перед
-   каждым переходом на новый узел.
+   чтобы игрок не потерял осколок случайным нажатием. Кнопка «Отмена»
+   стоит слева и коричневая, кнопка «Да, шаг назад» стоит справа и
+   зелёная акцентная. Это задаётся опциями okAccent:true и reverse:true.
    ⚠️ Восстановление возвращает: HP, максимум HP, золото, инвентарь,
    флаги, перезарядки, размер мешка, стартовый предмет. Значит, все
    предметы, взятые за эти шаги, исчезают из инвентаря — так же, как
    это работает при возврате к чекпоинту.
    ↗️ confirmAction — в: engine_state_dialogs.js
-   ↗️ awardMark — в: settings.js
    ↗️ getAdCoins, spendAdCoins — в: settings.js
    ↙️ Вызывается из: engine_overlay_input.js (кнопка HUD #backb, клавиша Z) */
 function goBack(){
@@ -164,7 +149,6 @@ function goBack(){
   const COST=1;
   const cur=(typeof window.getAdCoins==='function')?window.getAdCoins():0;
   if(cur<COST){toast('Не хватает осколков: нужно '+COST+', у вас '+cur);return;}
-  /* Внутренняя функция, которая выполнит откат после подтверждения. */
   function doBack(){
     if(typeof window.spendAdCoins!=='function'||!window.spendAdCoins(COST)){
       toast('Не удалось списать осколки');return;
@@ -186,40 +170,28 @@ function goBack(){
     _restoringFromHistory=false;
     toast('Шаг назад (−'+COST+' осколок)');
   }
-  /* Подтверждение через confirmAction. Кнопка подтверждения красная,
-     потому что действие тратит осколок. Кнопка отмены зелёная. */
   if(typeof window.confirmAction==='function'){
     const adIconFn=window.adIcon||function(){return '';};
     window.confirmAction(
       'Шаг назад?',
       'Ты вернёшься на предыдущий шаг. Состояние откатится: предметы, взятые за этот шаг, исчезнут. За откат нужно заплатить <b style="color:#ffe9a0">'+adIconFn(16)+' 1</b> осколок.<div class="hgap"></div>Сейчас у тебя: <b style="color:#ffe9a0">'+cur+'</b>.',
       'Да, шаг назад',
-      doBack
+      doBack,
+      {okAccent:true, reverse:true}
     );
   }else{
-    /* Страховка: если окно подтверждения недоступно — сразу откатываем. */
     doBack();
   }
 }
 window.goBack=goBack;
 
 /* ===== Обёртка go =====
-   Делает шесть вещей поверх оригинальной go из engine_state.js:
-   1. Перед переходом сохраняет снимок текущего состояния в S.stepHistory
-      (до трёх последних). Снимок не делается, если идёт восстановление из
-      истории (иначе откат «съел» бы предыдущий снимок).
-   2. Сохраняет чекпоинт, если узел назначения помечен saveCp.
-   3. Принудительно выдаёт ключевой предмет, если узел помечен forceGet.
-   4. Автовыдаёт предмет, если узел помечен autoGet.
-   5. Убирает предмет, если узел помечен removeItem.
-   6. Выдаёт тайный символ за достижение, если выполнено условие.
    ↗️ _go0 — оригинальная go из: engine_state.js
    ↗️ showForceGetDialog, showBagFullDialog, openInv — в: engine_state_dialogs.js, engine_render_inventory.js
    ↗️ awardMark — в: settings.js
    ↙️ Заменяет глобальную go после загрузки этого файла */
 const _go0=go;
 go=function(id){
-  /* 1. Снимок текущего состояния перед переходом. */
   if(!_restoringFromHistory&&S){
     if(!S.stepHistory)S.stepHistory=[];
     S.stepHistory.push({
@@ -241,7 +213,6 @@ go=function(id){
   if(n.saveCp&&typeof saveCheckpoint==='function'){
     saveCheckpoint(n.saveCp);
   }
-  /* Принудительная выдача ключевого предмета */
   if(n.forceGet&&!S.flags['force_'+id]){
     const item=n.forceGet;
     if(S.inv.length<invMax()){
@@ -260,7 +231,6 @@ go=function(id){
       }
     }
   }
-  /* Автовыдача предмета при входе на узел (обычная) */
   if(n.autoGet&&!S.flags['auto_'+id]){
     const item=n.autoGet;
     if(S.inv.length<invMax()){
@@ -279,13 +249,11 @@ go=function(id){
       }
     }
   }
-  /* Удаление предмета при входе на узел — без сообщения. */
   if(n.removeItem&&has(n.removeItem)){
     S.inv.splice(S.inv.indexOf(n.removeItem),1);
     recalcMaxHp();
     save();
   }
-  /* ===== Выдача тайного символа за достижения ===== */
   if(typeof window.awardMark==='function'){
     if(id===200)window.awardMark('chapter1','Глава 1 пройдена');
     if(id===400)window.awardMark('chapter2','Глава 2 пройдена');

@@ -1,8 +1,8 @@
 // engine_state_dialogs.js
-// v1.0.9 -> v1.0.10
+// v1.0.10 -> v1.0.11
 // Проект: GameBook1
 // Функция: универсальные модальные окна — подтверждение покупки, подтверждение опасного действия, информационное окно, окно «Мешок полон», окно принудительной выдачи ключевого предмета, окно результата броска с кубиком, окно находки, окно полученных предметов
-// Изменение: у окна confirmAction задан повышенный z-index (60). Раньше окно подтверждения выкидывания оказывалось под окном описания предмета — его было не видно. Теперь оно всегда поверх остальных слоёв
+// Изменение: в функцию confirmAction добавлены необязательные параметры: okAccent (делать ли подтверждение зелёной акцентной кнопкой вместо красной) и reverse (порядок кнопок — отмена слева, подтверждение справа). Раньше кнопка подтверждения всегда была красной и стояла слева. Теперь для окна шага назад можно включить акцентный вид и обратный порядок
 
 'use strict';
 
@@ -134,26 +134,47 @@ function showItemsReceived(items,gold,onClose){
 window.showItemsReceived=showItemsReceived;
 
 /* ===== Универсальное подтверждение опасного действия =====
-   Открывает окно с предупреждением. Кнопка подтверждения — красная,
-   кнопка отмены — зелёная акцентная. Клик по фону окно НЕ закрывает:
+   Открывает окно с предупреждением. Клик по фону окно НЕ закрывает:
    игрок должен сделать осознанный выбор.
-   ⚠️ z-index окна — 60. Это выше всех остальных оверлеев (у #det — 45,
-   у #buyconfirm — 50). Без этого окно подтверждения оказывалось под
-   окном описания предмета, и его было не видно.
+   Опции (объект opts, все необязательные):
+   — okAccent: true — кнопка подтверждения будет зелёной акцентной,
+     а не красной. Для действий, которые не разрушительны, но тратят
+     ресурс (например, шаг назад за осколок).
+   — reverse: true — порядок кнопок меняется: сначала «Отмена» (слева),
+     потом подтверждение (справа). По умолчанию подтверждение слева,
+     отмена справа.
+   По умолчанию (без опций) — подтверждение красное слева, отмена
+   зелёная справа. Это вид для опасных разрушительных действий
+   (выкидывание предмета).
+   ⚠️ z-index окна — 60. Выше всех остальных оверлеев.
    ↙️ Используется в: engine_render_inventory.js (кнопка «Выкинуть»),
-      showForceGetDialog (выбор предмета для замены в этом же файле) */
-function confirmAction(title,text,okLabel,onConfirm){
+      showForceGetDialog (выбор предмета для замены в этом же файле),
+      engine_checkpoints_logic.js (goBack — шаг назад) */
+function confirmAction(title,text,okLabel,onConfirm,opts){
   const old=document.getElementById('actionconfirm');
   if(old&&old.parentNode)old.parentNode.removeChild(old);
+  const options=opts||{};
   const ov=document.createElement('div');
   ov.className='ovl';ov.id='actionconfirm';
   ov.style.zIndex='60';
+  let okStyle,noStyle;
+  if(options.okAccent){
+    okStyle='';
+    noStyle='';
+  }else{
+    okStyle='background:linear-gradient(#8a3a3a,#6a2020);border-color:#c96a5a;color:#ffd6cd;font-weight:700';
+    noStyle='';
+  }
+  const okClass=options.okAccent?'btn btn-acc':'btn';
+  const noClass=options.okAccent?'btn':'btn btn-acc';
+  const okBtn='<button class="'+okClass+'" id="ac_yes" '+(okStyle?'style="'+okStyle+'"':'')+'>'+(okLabel||'Да')+'</button>';
+  const noBtn='<button class="'+noClass+'" id="ac_no" '+(noStyle?'style="'+noStyle+'"':'')+'>Отмена</button>';
+  const innerButtons=options.reverse?(noBtn+okBtn):(okBtn+noBtn);
   ov.innerHTML='<div class="invbox detbox" style="max-width:380px">'
     +'<h3 style="margin-bottom:10px">'+title+'</h3>'
     +'<div style="text-align:center;font-size:15px;line-height:1.5;margin:10px 0">'+text+'</div>'
     +'<div style="display:flex;justify-content:center;align-items:center;gap:16px;margin-top:16px;flex-wrap:wrap">'
-    +'<button class="btn" id="ac_yes" style="background:linear-gradient(#8a3a3a,#6a2020);border-color:#c96a5a;color:#ffd6cd;font-weight:700">'+(okLabel||'Да')+'</button>'
-    +'<button class="btn btn-acc" id="ac_no">Отмена</button>'
+    +innerButtons
     +'</div>'
     +'</div>';
   document.body.appendChild(ov);
