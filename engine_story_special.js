@@ -2,7 +2,7 @@
 // v1.1.14 (текущая)
 // Проект: GameBook1
 // Функция: специальные сцены и обработка выбора карты — отдых, сон, урон, рестарт, конец главы, возврат к чекпоинту, бросок стартового предмета, галерея стартовых, покупка, финализация карты, главный обработчик выбора
-// Изменение: из текстов окна результата броска убраны подписи «Бросок N — успех!/неудача./удача!» и «Бросок N». Теперь под кубиком выводится только описание последствий — саму фразу-подпись окно результата подставляет самостоятельно. Убрана всплывающая подсказка над кубиком (последний аргумент showDie) — её роль выполнит фраза в окне результата
+// Изменение: результат броска кубика теперь сохраняется в состояние игры до начала анимации кубика. Если игрок обновит страницу между броском и нажатием «Далее», окно с тем же числом и теми же последствиями покажется снова — повторного броска не будет. То же касается стартового предмета
 
 'use strict';
 
@@ -96,6 +96,11 @@ function doSpecial(c){
     return true;
   }
 
+  /* ===== Бросок стартового предмета =====
+     Результат броска (число, выбранный предмет) фиксируется в состоянии
+     ДО начала анимации кубика. Если игрок обновит страницу во время
+     анимации — окно с полученным предметом покажется сразу, без
+     повторного броска. */
   if(c.special==='rollStartItem'){
     if(S.flags.startItemRolled){
       if(c.go){go(c.go);}
@@ -104,13 +109,16 @@ function doSpecial(c){
     busy=true;
     const v=Math.floor(Math.random()*6)+1;
     const chosen=START_ITEMS[v-1];
+    S.startItem=chosen;
+    S.flags.startItemRolled=1;
+    S.flags.startItemRolledValue=v;
+    if(!has(chosen))S.inv.push(chosen);
+    recalcMaxHp();
+    S.pendingStartItem=1;
+    save();
     showDie(v,function(){
       busy=false;
-      S.startItem=chosen;
-      S.flags.startItemRolled=1;
-      S.flags.startItemRolledValue=v;
-      if(!has(chosen))S.inv.push(chosen);
-      recalcMaxHp();
+      S.pendingStartItem=null;
       save();
       render();
       showStartItemReceivedWindow();
@@ -162,16 +170,43 @@ function _itemIconHTML(itemId,width){
     +'</div></div>';
 }
 
-/* ===== Показать окно с исходом броска и перейти дальше =====
-   Фразу-подпись окно результата подставляет самостоятельно по outcome.
-   Здесь передаём только описание последствий. */
+/* ===== Сохранить результат броска и запустить анимацию =====
+   Результат (число, исход, последствия, следующий узел) сохраняется
+   в состояние ДО начала анимации. Если игрок обновит страницу между
+   броском и нажатием «Далее» — окно результата покажется снова с тем
+   же числом, повторного броска не будет.
+   ↙️ Вызывается из: play (в этом же файле), внутри блоков проверок */
+function _prepareAndShowRoll(text,nextNode,outcome,diceValue){
+  S.pendingRoll={
+    text:text,
+    nextNode:(nextNode===null||nextNode===undefined)?null:nextNode,
+    outcome:outcome||'tie',
+    dice:diceValue||1,
+    ts:Date.now()
+  };
+  save();
+  showDie(diceValue,function(){
+    busy=false;
+    /* Если игрок успел уйти в чекпоинт через меню истории —
+       не показываем окно поверх восстановленного состояния. */
+    if(!S.pendingRoll)return;
+    _showRollOutcome(text,nextNode,outcome,diceValue);
+  },outcome);
+}
+
+/* ===== Показать окно результата броска и обработать «Далее» =====
+   Вызывается из _prepareAndShowRoll после анимации кубика, а также
+   при загрузке страницы из story_ch1_5.js, если в сохранении остался
+   незакрытый результат броска. */
 function _showRollOutcome(text,nextNode,outcome,diceValue){
   const proceed=function(){
+    S.pendingRoll=null;
+    save();
     if(S.hp<=0){
       if(typeof showCheckpointChoice==='function')showCheckpointChoice();
       return;
     }
-    if(nextNode===null){
+    if(nextNode===null||nextNode===undefined){
       render();
     }else{
       go(nextNode);
@@ -185,6 +220,7 @@ function _showRollOutcome(text,nextNode,outcome,diceValue){
     proceed();
   }
 }
+window._showRollOutcome=_showRollOutcome;
 
 function play(c){
   if(busy)return;
@@ -254,32 +290,28 @@ function play(c){
     const v=diceRoll(has('horseshoe'));
     const ok=v>=4;
     const outcome=ok?'win':'lose';
-    showDie(v,function(){
-      busy=false;
-      let gotItem=false;
-      let bagFull=false;
-      if(item){
-        if(S.inv.length<invMax()){S.inv.push(item);recalcMaxHp();gotItem=true;}
-        else{bagFull=true;}
-      }
-      if(!ok){S.hp--;}
-      save();
-      let text='';
-      if(ok){
-        text='Ты выхватил верёвку из-под паука. Он метнулся следом, но промахнулся — и остался в нише один.';
-      }else{
-        text='Ты потянулся за верёвкой — и паук ударил первым. Укус в руку, резкий, обжигающий. Ты отступаешь, но верёвку не бросаешь.'
-          +'<div class="hgap"></div><b>−1 сердце</b>';
-      }
-      if(gotItem){
-        text+='<div class="hgap"></div><b>Получено: '+ITEMS[item].n+'</b>';
-        text+=_itemIconHTML(item,110);
-        text+='<div class="hgap"></div>'+ITEMS[item].d;
-      }else if(bagFull){
-        text+='<div class="hgap"></div><b>Мешок полон — '+ITEMS[item].n+' остаётся в нише</b>';
-      }
-      _showRollOutcome(text,target,outcome,v);
-    },outcome);
+    let gotItem=false;
+    let bagFull=false;
+    if(item){
+      if(S.inv.length<invMax()){S.inv.push(item);recalcMaxHp();gotItem=true;}
+      else{bagFull=true;}
+    }
+    if(!ok){S.hp--;}
+    let text='';
+    if(ok){
+      text='Ты выхватил верёвку из-под паука. Он метнулся следом, но промахнулся — и остался в нише один.';
+    }else{
+      text='Ты потянулся за верёвкой — и паук ударил первым. Укус в руку, резкий, обжигающий. Ты отступаешь, но верёвку не бросаешь.'
+        +'<div class="hgap"></div><b>−1 сердце</b>';
+    }
+    if(gotItem){
+      text+='<div class="hgap"></div><b>Получено: '+ITEMS[item].n+'</b>';
+      text+=_itemIconHTML(item,110);
+      text+='<div class="hgap"></div>'+ITEMS[item].d;
+    }else if(bagFull){
+      text+='<div class="hgap"></div><b>Мешок полон — '+ITEMS[item].n+' остаётся в нише</b>';
+    }
+    _prepareAndShowRoll(text,target,outcome,v);
     return;
   }
 
@@ -291,18 +323,10 @@ function play(c){
     const v=diceRoll(has('horseshoe'));
     const ok=v>=3;
     const outcome=ok?'win':'lose';
-    showDie(v,function(){
-      busy=false;
-      if(!ok){S.hp--;}
-      save();
-      let text;
-      if(ok){
-        text='';
-      }else{
-        text='<b>−1 сердце</b>';
-      }
-      _showRollOutcome(text,ok?okNode:failNode,outcome,v);
-    },outcome);
+    if(!ok){S.hp--;}
+    const nextNode=ok?okNode:failNode;
+    const text=ok?'':'<b>−1 сердце</b>';
+    _prepareAndShowRoll(text,nextNode,outcome,v);
     return;
   }
 
@@ -313,23 +337,14 @@ function play(c){
     const v=diceRoll(has('horseshoe'));
     const ok=v>=3;
     const outcome=ok?'win':'lose';
-    showDie(v,function(){
-      busy=false;
-      if(flag)S.flags[flag]=1;
-      if(ok){
-        healHp(1);
-      }else{
-        S.hp--;
-      }
-      save();
-      let text;
-      if(ok){
-        text='<b>+1 сердце</b>';
-      }else{
-        text='<b>−1 сердце</b>';
-      }
-      _showRollOutcome(text,null,outcome,v);
-    },outcome);
+    if(flag)S.flags[flag]=1;
+    if(ok){
+      healHp(1);
+    }else{
+      S.hp--;
+    }
+    const text=ok?'<b>+1 сердце</b>':'<b>−1 сердце</b>';
+    _prepareAndShowRoll(text,null,outcome,v);
     return;
   }
 
@@ -348,20 +363,10 @@ function play(c){
     const v=diceRoll(has('horseshoe'));
     const ok=v>=3;
     const outcome=ok?'win':'lose';
-    showDie(v,function(){
-      busy=false;
-      if(!ok){
-        S.hp--;
-      }
-      save();
-      let text;
-      if(ok){
-        text='';
-      }else{
-        text='<b>−1 сердце</b>';
-      }
-      _showRollOutcome(text,ok?winNode:failNode,outcome,v);
-    },outcome);
+    if(!ok){S.hp--;}
+    const nextNode=ok?winNode:failNode;
+    const text=ok?'':'<b>−1 сердце</b>';
+    _prepareAndShowRoll(text,nextNode,outcome,v);
     return;
   }
 

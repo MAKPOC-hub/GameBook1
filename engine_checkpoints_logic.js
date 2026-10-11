@@ -1,8 +1,8 @@
 // engine_checkpoints_logic.js
-// v1.0.11 -> v1.0.12
+// v1.0.12 (текущая)
 // Проект: GameBook1
 // Функция: логика чекпоинтов — сохранение снимка состояния, проверка открытия, время открытия, возврат к чекпоинту, окно выбора при нуле сердец, открытие меню «История», обёртка над переходом на узел для автосохранения чекпоинта, автовыдачи и удаления предметов, выдача тайных символов за достижения, шаг назад за осколки
-// Изменение: в тексте окна подтверждения шага назад в строке «Сейчас у тебя:» перед числом добавлена иконка осколка. Раньше было просто число, и игроку приходилось догадываться, о чём речь
+// Изменение: returnToCheckpoint сбрасывает pendingRoll и pendingStartItem — иначе отложенное окно броска кубика могло открыться поверх восстановленного чекпоинта
 
 'use strict';
 
@@ -63,6 +63,10 @@ function returnToCheckpoint(id){
   S.combat=null;
   S.lutePrev=null;
   S.stepHistory=[];
+  /* Сбрасываем отложенные окна — иначе окно результата броска
+     могло открыться поверх восстановленного состояния. */
+  S.pendingRoll=null;
+  S.pendingStartItem=null;
   recalcMaxHp();
   save();
   toast('Возврат: '+cp.name);
@@ -169,9 +173,7 @@ function goBack(){
   }
   if(typeof window.confirmAction==='function'){
     const adIconFn=window.adIcon||function(){return '';};
-    /* Цена: иконка + «1 осколок» — неразрывной связкой. */
     const priceLine='<span style="white-space:nowrap;display:inline-block">'+adIconFn(16)+' <b style="color:#ffe9a0">1</b> осколок</span>';
-    /* Текущий запас: тоже с иконкой, чтобы было понятно, о чём речь. */
     const curLine='<span style="white-space:nowrap;display:inline-block">'+adIconFn(16)+' <b style="color:#ffe9a0">'+cur+'</b></span>';
     window.confirmAction(
       'Шаг назад?',
