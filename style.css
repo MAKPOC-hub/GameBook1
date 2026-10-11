@@ -1,8 +1,8 @@
 /* style.css */
-/* v2.5.5 -> v2.5.6 */
+/* v2.5.6 -> v2.5.7 */
 /* Проект: GameBook1 */
-/* Функция: оформление игры (ХАД, панель текста, карты, оверлеи, анимации, панель быстрого доступа, галерея стартовых предметов, валюты в ХАД) */
-/* Изменение: добавлены стили для нового контейнера валют в верхней панели (.hudcoins и его дочерние .pursewrap). Кнопка «Мешок» убрана из разметки — вместо неё контейнер с тремя валютами: золото, осколки, знаки. Каждая валюта кликабельна. В мобильной раскладке средняя ячейка второго ряда теперь называется «coins» и занята блоком валют */
+/* Функция: оформление игры (ХАД, панель текста, карты, оверлеи, анимации, панель быстрого доступа, галерея стартовых предметов, валюты в ХАД, кнопка «Шаг назад») */
+/* Изменение: добавлен контейнер .hudnav — он оборачивает кнопки «История» и «Шаг назад», чтобы они вместе занимали одну ячейку верхнего ряда. В мобильной раскладке вторая строка теперь одна: сердца по центру под всем рядом кнопок */
 :root{--wood:#5b422a;--wood2:#7a5a38;--parch:#f0e2c4;--ink:#2f2417;--gold:#e8c76a}
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{height:100%}
@@ -16,6 +16,7 @@ body{font-family:Georgia,'Times New Roman',serif;background:#0c110b;color:#efe6d
 .hud-l{justify-self:start;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
 .hud-c{justify-self:center;display:flex;align-items:center}
 .hud-r{justify-self:end;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.hudnav{display:flex;align-items:center;gap:8px}
 .heart{font-size:33px;color:#4a3b2a;text-shadow:0 1px 2px #000;transition:.3s;margin:0 7px}
 .heart.on{color:#e2453b}
 .badge{
@@ -39,7 +40,6 @@ body{font-family:Georgia,'Times New Roman',serif;background:#0c110b;color:#efe6d
 .gold{font-size:15px;color:var(--gold)}
 .btn{cursor:pointer;font-family:inherit;font-size:14px;background:linear-gradient(#6b4c30,#533a24);color:#f4e8ce;border:2px solid #8a6a44;border-radius:10px;padding:5px 12px}
 .btn:active{transform:translateY(1px)}
-/* ===== Кнопка настроек и кнопка «История» ===== */
 .gearbtn{display:flex;align-items:center;justify-content:center;background:linear-gradient(#3c5432,#2c4023);border:1px solid var(--wood2);border-radius:10px;padding:4px 12px;color:#e9dfc5;cursor:pointer;min-height:46px;min-width:46px;transition:transform .1s}
 .gearbtn:hover{border-color:#b8d494}
 .gearbtn:active{transform:translateY(1px)}
@@ -49,16 +49,11 @@ body{font-family:Georgia,'Times New Roman',serif;background:#0c110b;color:#efe6d
 .histbtn .pl1{display:none}
 .histbtn:hover{border-color:#b8d494}
 .histbtn:active{transform:translateY(1px)}
-/* ===== Контейнер валют в верхней панели =====
-   Три кликабельных блока: золото, осколки, знаки. Каждый блок —
-   иконка и число. Клик открывает соответствующий диалог.
-   ↙️ Наполняется из: settings.js (initHudCurrencies) */
 .hudcoins{display:flex;align-items:center;gap:6px;background:linear-gradient(#3c5432,#2c4023);border:1px solid var(--wood2);border-radius:10px;padding:4px 10px;min-height:46px}
 .hudcoins .pursewrap{display:inline-flex;align-items:center;gap:4px;cursor:pointer;border-radius:8px;padding:2px 4px;transition:transform .15s,background .15s}
 .hudcoins .pursewrap:hover{transform:translateY(-2px)}
 .hudcoins .pursewrap svg{display:block;filter:drop-shadow(0 1px 2px #000)}
 .hudcoins .purse-n{color:var(--gold);font-size:14px;font-weight:700}
-/* ===== Панель текста ===== */
 #panel{position:relative;width:100%;margin-top:-4px;background:rgba(16,23,14,.78);border:2px solid rgba(122,90,56,.65);border-radius:14px;padding:3px 18px 3px;box-shadow:0 8px 30px rgba(0,0,0,.35)}
 #panel .txt{
   position:relative;
@@ -282,12 +277,11 @@ body{font-family:Georgia,'Times New Roman',serif;background:#0c110b;color:#efe6d
 
 /* ===== Адаптив: узкий экран (телефон) =====
    Верхняя панель — два ряда.
-   Строка 1: локация (по ширине текста) · История · Валюты · Настройки.
-   Строка 2: сердца по центру.
-   Валюты занимают одну ячейку — три маленьких блока в ряд. */
+   Строка 1: локация · История+Шаг назад (в одной ячейке) · Валюты · Настройки.
+   Строка 2: сердца по центру. */
 @media(max-width:640px){
   #hud{
-    grid-template-columns:auto 1fr auto auto;
+    grid-template-columns:auto auto 1fr auto;
     grid-template-areas:
       "stat hist coins set"
       "heart heart heart heart";
@@ -297,14 +291,15 @@ body{font-family:Georgia,'Times New Roman',serif;background:#0c110b;color:#efe6d
   }
   .hud-l,.hud-c,.hud-r{display:contents}
   #statb{grid-area:stat;justify-self:start;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:11px;padding:4px 8px}
-  #histb{grid-area:hist;justify-self:start;padding:4px 6px;min-height:42px}
+  .hudnav{grid-area:hist;justify-self:start;display:flex;gap:4px}
+  .hudnav .histbtn{padding:4px 6px;min-height:42px}
   #hudcoins{grid-area:coins;justify-self:end;padding:3px 6px;min-height:42px;gap:4px}
   #hudcoins .purse-n{font-size:12px}
   #hudcoins .pursewrap{padding:1px 2px}
   #setb{grid-area:set;justify-self:end;padding:2px;min-height:42px;min-width:42px}
   #hearts{grid-area:heart;justify-self:center;display:flex;align-items:center;justify-content:center;padding:2px 0}
 
-  #histb .pl1{display:none}
+  .hudnav .histbtn .pl1{display:none}
   #setb svg{width:28px;height:28px}
 
   #panel .txt{font-size:15px}
