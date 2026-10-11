@@ -2,7 +2,7 @@
 // v1.0.12 (текущая)
 // Проект: GameBook1
 // Функция: логика чекпоинтов — сохранение снимка состояния, проверка открытия, время открытия, возврат к чекпоинту, окно выбора при нуле сердец, открытие меню «История», обёртка над переходом на узел для автосохранения чекпоинта, автовыдачи и удаления предметов, выдача тайных символов за достижения, шаг назад за осколки
-// Изменение: returnToCheckpoint сбрасывает pendingRoll и pendingStartItem — иначе отложенное окно броска кубика могло открыться поверх восстановленного чекпоинта
+// Изменение: окно смерти переработано. Вместо сетки кнопок-плиток с открытыми чекпоинтами — одна кнопка «История», которая открывает оверлей истории. Если ни одного чекпоинта ещё нет, показывается эпическая фраза про славное начало и короткий путь и кнопка «Начать сначала»
 
 'use strict';
 
@@ -75,7 +75,14 @@ function returnToCheckpoint(id){
   return true;
 }
 
-/* ===== Окно выбора чекпоинта при HP = 0 =====
+/* ===== Окно выбора при нуле сердец =====
+   Две ситуации:
+   1) Открытые чекпоинты есть. Показываем одну кнопку «История» — по ней
+      игрок открывает оверлей истории и сам выбирает, куда вернуться.
+   2) Открытых чекпоинтов нет (игрок умер до первого сохранения).
+      Показываем эпическую фразу про славное начало и короткий путь
+      и одну кнопку «Начать сначала».
+   ↗️ openHistoryOverlay — в: engine_overlay_history.js
    ↙️ Вызывается из: engine_combat.js (afterRound), engine_story_special.js (play, doSpecial) при S.hp<=0 */
 function showCheckpointChoice(){
   const old=document.getElementById('cpchoice');
@@ -83,44 +90,48 @@ function showCheckpointChoice(){
   const ov=document.createElement('div');
   ov.className='ovl';ov.id='cpchoice';
   const opened=CHECKPOINTS.filter(function(cp){return isCheckpointOpen(cp.id);});
-  let listHtml='';
-  if(!opened.length){
-    listHtml='<div style="text-align:center;font-style:italic;opacity:.85;margin:12px 0">У вас пока нет открытых чекпоинтов. Возврат к началу леса.</div>';
+  let body='';
+  if(opened.length){
+    body='<div style="text-align:center;font-size:14.5px;line-height:1.55;opacity:.9;margin:8px 0">'
+      +'Силы покинули тебя.'
+      +'<div class="hgap"></div>'
+      +'Но лес помнит, где ты был. Выбери место, откуда продолжить.'
+      +'</div>'
+      +'<div style="text-align:center;margin-top:16px">'
+      +'<button class="btn btn-acc" id="cp_open_hist" style="min-width:200px">История</button>'
+      +'</div>';
   }else{
-    listHtml='<div style="display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin:12px 0">'
-      +opened.map(function(cp){
-        return '<button class="btn cpbtn" data-cp="'+cp.id+'" style="text-align:center;padding:10px 8px">'
-          +'<div style="font-weight:700;color:#ffe9a0;margin-bottom:3px">'+cp.name+'</div>'
-          +'<div style="font-size:11px;opacity:.75">'+getCheckpointTime(cp.id)+'</div>'
-          +'</button>';
-      }).join('')
+    body='<div style="text-align:center;font-size:14.5px;line-height:1.55;opacity:.9;margin:8px 0">'
+      +'Славное начало — но путь оказался короче, чем ты думал. Лес заметил твой шаг и запомнил его, и это уже немало.'
+      +'<div class="hgap"></div>'
+      +'Не стыдно падать на первом шаге. Стыдно не встать. Встань. Начни заново.'
+      +'</div>'
+      +'<div style="text-align:center;margin-top:16px">'
+      +'<button class="btn btn-acc" id="cp_start_over" style="min-width:200px">Начать сначала</button>'
       +'</div>';
   }
   ov.innerHTML='<div class="invbox detbox" style="max-width:420px">'
     +'<h3 style="margin-bottom:6px">Тьма близко</h3>'
-    +'<div style="text-align:center;font-size:14px;line-height:1.5;opacity:.9;margin:8px 0">'
-    +'Силы покинули тебя.<div class="hgap"></div>Но лес помнит, где ты был. Выбери место, откуда продолжить.'
-    +'</div>'
-    +listHtml
-    +(opened.length?'':'<div style="text-align:center;margin-top:8px"><button class="btn" id="cp_start_over">Начать сначала</button></div>')
+    +body
     +'</div>';
   document.body.appendChild(ov);
-  if(!opened.length){
-    ov.querySelector('#cp_start_over').addEventListener('click',function(){
+  if(opened.length){
+    ov.querySelector('#cp_open_hist').addEventListener('click',function(){
       if(ov.parentNode)ov.parentNode.removeChild(ov);
-      try{localStorage.removeItem('zl_save');}catch(e){}
-      hasSave=false;
-      S=newState();
-      go(1);
+      if(typeof window.openHistoryOverlay==='function'){
+        window.openHistoryOverlay();
+      }else{
+        toast('Меню истории недоступно');
+      }
     });
     return;
   }
-  ov.querySelectorAll('.cpbtn').forEach(function(btn){
-    btn.addEventListener('click',function(){
-      const id=btn.getAttribute('data-cp');
-      if(ov.parentNode)ov.parentNode.removeChild(ov);
-      returnToCheckpoint(id);
-    });
+  ov.querySelector('#cp_start_over').addEventListener('click',function(){
+    if(ov.parentNode)ov.parentNode.removeChild(ov);
+    try{localStorage.removeItem('zl_save');}catch(e){}
+    hasSave=false;
+    S=newState();
+    go(1);
   });
 }
 
