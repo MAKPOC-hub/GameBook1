@@ -1,8 +1,8 @@
 // engine_state_dialogs.js
-// v1.0.8 -> v1.0.9
+// v1.0.9 -> v1.0.10
 // Проект: GameBook1
 // Функция: универсальные модальные окна — подтверждение покупки, подтверждение опасного действия, информационное окно, окно «Мешок полон», окно принудительной выдачи ключевого предмета, окно результата броска с кубиком, окно находки, окно полученных предметов
-// Изменение: добавлена функция confirmAction — универсальное подтверждение опасного действия. Используется при выкидывании предмета из мешка, чтобы игрок не терял предмет случайным нажатием. Кнопка подтверждения красная, кнопка «Отмена» — зелёная акцентная. Клик по фону окно не закрывает
+// Изменение: у окна confirmAction задан повышенный z-index (60). Раньше окно подтверждения выкидывания оказывалось под окном описания предмета — его было не видно. Теперь оно всегда поверх остальных слоёв
 
 'use strict';
 
@@ -137,6 +137,9 @@ window.showItemsReceived=showItemsReceived;
    Открывает окно с предупреждением. Кнопка подтверждения — красная,
    кнопка отмены — зелёная акцентная. Клик по фону окно НЕ закрывает:
    игрок должен сделать осознанный выбор.
+   ⚠️ z-index окна — 60. Это выше всех остальных оверлеев (у #det — 45,
+   у #buyconfirm — 50). Без этого окно подтверждения оказывалось под
+   окном описания предмета, и его было не видно.
    ↙️ Используется в: engine_render_inventory.js (кнопка «Выкинуть»),
       showForceGetDialog (выбор предмета для замены в этом же файле) */
 function confirmAction(title,text,okLabel,onConfirm){
@@ -144,6 +147,7 @@ function confirmAction(title,text,okLabel,onConfirm){
   if(old&&old.parentNode)old.parentNode.removeChild(old);
   const ov=document.createElement('div');
   ov.className='ovl';ov.id='actionconfirm';
+  ov.style.zIndex='60';
   ov.innerHTML='<div class="invbox detbox" style="max-width:380px">'
     +'<h3 style="margin-bottom:10px">'+title+'</h3>'
     +'<div style="text-align:center;font-size:15px;line-height:1.5;margin:10px 0">'+text+'</div>'
@@ -438,8 +442,6 @@ function showForceGetDialog(itemId, onContinue){
         const id=el.getAttribute('data-drop');
         const idx=S.inv.indexOf(id);
         if(idx<0)return;
-        /* ⚠️ Перед выбрасыванием — подтверждение, чтобы не потерять
-           предмет случайным нажатием. */
         const dropName=ITEMS[id]?ITEMS[id].n:id;
         confirmAction(
           'Выбросить предмет?',
