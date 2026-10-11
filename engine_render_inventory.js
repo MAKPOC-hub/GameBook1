@@ -1,8 +1,8 @@
 // engine_render_inventory.js
-// v1.0.1 -> v1.0.2
+// v1.0.2 -> v1.0.3
 // Проект: GameBook1
 // Функция: просмотр предмета и открытие мешка
-// Изменение: сетка предметов внутри окна мешка тоже центрируется при неполном ряде (правило 10.9). Раньше при одном-двух предметах они стояли в левом углу, а справа оставалось пустое место от пустых ячеек. Теперь используется flex-контейнер с центрированием; пустые ячейки идут после заполненных и визуально отделены отступом. Также мелкая правка: после обновления HUD-валют функция обновления вызывается как updateHudCurrencies
+// Изменение: в окне описания предмета название разбивается на две строки, если содержит тире или угловые кавычки «…» — например, «Компас» на первой строке, «Истинный путь» на второй. Также кнопки внизу окна помещены в контейнер с отступом между ними — раньше они прилипали друг к другу, потому что стояли подряд через обычный пробел
 
 'use strict';
 
@@ -14,9 +14,6 @@ const PURSE_SVG='<svg viewBox="0 0 40 48" width="38" height="46" aria-hidden="tr
    ⚠️ Окно мешка открывается только программно — при переполнении из
    диалогов «Мешок полон» или из вспомогательных сценариев. Кнопки мешка
    в верхней панели больше нет.
-   ⚠️ Заполненные ячейки идут первыми и центрируются. Пустые — после них,
-   тоже по центру, как отдельный блок. При одном-двух предметах они не
-   прижимаются к левому краю (правило 10.9).
    ↗️ ItemCards — в: itemcards.js
    ↗️ openDetail — в этом же файле
    ↗️ isReady, cdLeft — в: engine_state_cooldown.js
@@ -29,7 +26,6 @@ function openInv(){
   const cap=BASE+owned;
   const premiumLeft=PREMIUM-owned;
   let h='<div class="invhead"><span class="invh-bag">Мешок '+S.inv.length+'/'+cap+'</span><span class="pursewrap">'+PURSE_SVG+'<b class="purse-n">'+S.gold+'</b></span></div>';
-  /* Список предметов в виде гибкого центрированного ряда. */
   h+='<div style="display:flex;flex-wrap:wrap;justify-content:center;gap:10px;margin-top:6px">';
   const groups=[],seen={};
   S.inv.forEach(function(it){if(seen[it]===undefined){seen[it]=1;groups.push(it);}else{seen[it]++;}});
@@ -55,7 +51,6 @@ function openInv(){
     }
   });
   h+='</div>';
-  /* Пустые ячейки и премиум — отдельным рядом ниже. */
   const emptyCount=cap-groups.length;
   if(emptyCount>0||premiumLeft>0){
     h+='<div style="display:flex;flex-wrap:wrap;justify-content:center;gap:10px;margin-top:10px;border-top:1px dashed rgba(122,90,56,.35);padding-top:10px">';
@@ -102,13 +97,12 @@ function doUnlockSlot(COST){
 /* ===== Просмотр предмета =====
    Открывается кликом по предмету в панели быстрого доступа или по предмету
    в окне мешка (которое теперь вызывается только программно).
-   Кнопки зависят от типа предмета:
-   — еда и питьё: «Съесть» (вне боя);
-   — свиток лечения: «Сотворить» (вне боя);
-   — свиток огня: «Применить» (только в бою);
-   — особые предметы (компас, вспышка, лютня, бросок тени): «Применить»
-     (если готовы) или «Сбросить перезарядку» (если на перезарядке);
-   — всегда: «Выкинуть» и «Закрыть».
+   ⚠️ Название предмета разбивается на две строки, если содержит конструкцию
+   вида «Компас «Истинный путь»» или «Меч путника — с ядром». Разбивка
+   делается по первому пробелу перед угловой кавычкой «…» или по тире.
+   Это нужно, чтобы длинные названия не ломались на узком экране.
+   ⚠️ Кнопки внизу помещены в контейнер с отступом между ними (gap:8px).
+   Раньше они стояли подряд через обычный пробел и визуально прилипали.
    ↗️ ItemCards — в: itemcards.js
    ↗️ applyItemFromBag, eatItem — в: engine_items_apply.js
    ↗️ resetCdForCoins — в: engine_state_cooldown.js
@@ -130,26 +124,38 @@ function openDetail(it){
   }else{
     preview='<div class="det-preview"><div class="gbp" style="width:140px"><div class="gbp-art" style="font-size:52px;color:#e9dfc5">'+info.n.charAt(0)+'</div></div></div>';
   }
+  /* Разбивка названия на две строки:
+     — «Компас «Истинный путь»» → «Компас<br>«Истинный путь»»
+     — «Лютня «Эхо веков»» → «Лютня<br>«Эхо веков»»
+     — «Амулет стойкости» остаётся одной строкой (тире нет, кавычек нет).
+     Правило: если в названии есть пробел перед « — переносим там. */
+  const rawName=String(info.n);
+  let titleHTML=rawName;
+  const quoteIdx=rawName.indexOf(' «');
+  if(quoteIdx>0){
+    titleHTML=rawName.slice(0,quoteIdx)+'<br>'+rawName.slice(quoteIdx+1);
+  }
   let btns='';
   const ready=isReady(it);
   const cd=cdLeft(it);
   const canHeal=!S.combat&&S.hp<S.maxhp&&HEALS[it];
   /* Еда — съесть вне боя. */
-  if(HEALS[it]&&canHeal)btns+='<button class="btn" id="detuse">Съесть (+'+HEALS[it]+' '+ico('heart',14)+')</button> ';
+  if(HEALS[it]&&canHeal)btns+='<button class="btn" id="detuse">Съесть (+'+HEALS[it]+' '+ico('heart',14)+')</button>';
   /* Свиток лечения — сотворить вне боя. */
-  if(it==='scroll_heal'&&canHeal)btns+='<button class="btn" id="detuse">Сотворить (+2 '+ico('heart',14)+')</button> ';
+  if(it==='scroll_heal'&&canHeal)btns+='<button class="btn" id="detuse">Сотворить (+2 '+ico('heart',14)+')</button>';
   /* Свиток огня — применить в бою. */
-  if(it==='scroll_fire'&&S.combat)btns+='<button class="btn" id="detfire">Огненный шар (враг −2 '+ico('heart',14)+')</button> ';
+  if(it==='scroll_fire'&&S.combat)btns+='<button class="btn" id="detfire">Огненный шар (враг −2 '+ico('heart',14)+')</button>';
   /* Особые предметы с перезарядкой. */
   if(it==='compass'||it==='flash'||it==='lute'||it==='vory_knife'){
     if(!ready){
-      btns+='<button class="btn" id="detreset">Сбросить перезарядку (3 осколка)</button> ';
+      btns+='<button class="btn" id="detreset">Сбросить перезарядку (3 осколка)</button>';
     }else{
-      btns+='<button class="btn" id="detapply">Применить</button> ';
+      btns+='<button class="btn" id="detapply">Применить</button>';
     }
   }
-  btns+='<button class="btn" id="detdrop">Выкинуть</button> <button class="btn" id="detclose">Закрыть</button>';
-  $('#detbox').innerHTML=preview+'<h3>'+info.n+'</h3><div class="detd">'+info.d+'</div><div style="text-align:center;margin-top:12px">'+btns+'</div>';
+  btns+='<button class="btn" id="detdrop">Выкинуть</button><button class="btn" id="detclose">Закрыть</button>';
+  $('#detbox').innerHTML=preview+'<h3>'+titleHTML+'</h3><div class="detd">'+info.d+'</div>'
+    +'<div style="display:flex;justify-content:center;align-items:center;flex-wrap:wrap;gap:8px;margin-top:12px">'+btns+'</div>';
   det.classList.remove('hidden');
   const u=$('#detuse');
   if(u)u.addEventListener('click',function(){
