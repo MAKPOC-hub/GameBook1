@@ -1,8 +1,8 @@
 <!-- index.html -->
-<!-- v2.6.10 -> v2.6.11 -->
+<!-- v2.6.11 -> v2.6.12 -->
 <!-- Проект: GameBook1 -->
 <!-- Функция: разметка игры и подключение файлов -->
-<!-- Изменение: значок кнопки «Шаг назад» увеличен — теперь он занимает всю площадь кнопки. Раньше иконка была 24×24 при кнопке 46×46, и выглядела мелкой. Теперь кнопка зафиксирована в размере 46×46 пикселей, внутренние отступы уменьшены до 2 пикселей, а значок растянут на всю доступную область -->
+<!-- Изменение: значок кнопки «Шаг назад» уменьшен до среднего размера — 32×32 вместо прежних 24 и текущих 42. Кнопка остаётся 46×46, как у «Истории». Значок стал крупнее изначального, но не выходит за пределы кнопки -->
 
 <!DOCTYPE html>
 <html lang="ru">
@@ -28,8 +28,8 @@
 </svg>
 <span class="pl1">История</span>
 </button>
-<button class="histbtn" id="backb" title="Шаг назад (1 осколок)" style="padding:2px;width:46px;height:46px;min-width:46px;min-height:46px">
-<svg viewBox="0 0 32 32" width="100%" height="100%" style="display:block" aria-hidden="true">
+<button class="histbtn" id="backb" title="Шаг назад (1 осколок)" style="width:46px;height:46px;min-width:46px;min-height:46px;padding:0;display:flex;align-items:center;justify-content:center">
+<svg viewBox="0 0 32 32" width="32" height="32" aria-hidden="true">
 <defs>
 <linearGradient id="backWoodG" x1="0" y1="0" x2="0" y2="1">
 <stop offset="0" stop-color="#c9a06a"/>
