@@ -1,8 +1,8 @@
 // engine_story_special.js
-// v1.1.13 -> v1.1.14
+// v1.1.14 (текущая)
 // Проект: GameBook1
 // Функция: специальные сцены и обработка выбора карты — отдых, сон, урон, рестарт, конец главы, возврат к чекпоинту, бросок стартового предмета, галерея стартовых, покупка, финализация карты, главный обработчик выбора
-// Изменение: в блоке находки (c.pick) после выдачи предметов открывается окно showItemsReceived с картинками, названиями и полными описаниями. Это правило 10.10: игрок должен увидеть, что он взял. Также в блоке проверки с предметом (checkTake) при успехе в окно результата броска добавлено полное описание полученного предмета — раньше там была только картинка
+// Изменение: из окна результата броска и из всплывающей подсказки над кубиком убраны слова «успех»/«неудача»/«удача». Текст под кубиком теперь — просто «Бросок N», всплывающая подсказка над кубиком удалена совсем (её роль выполняет заголовок в окне результата со случайной фразой)
 
 'use strict';
 
@@ -252,7 +252,6 @@ function play(c){
     const v=diceRoll(has('horseshoe'));
     const ok=v>=4;
     const outcome=ok?'win':'lose';
-    const diceMsg=ok?('Бросок '+v+' — успех!'):('Бросок '+v+' — неудача');
     showDie(v,function(){
       busy=false;
       let gotItem=false;
@@ -265,11 +264,11 @@ function play(c){
       save();
       let text='';
       if(ok){
-        text='<b>Бросок '+v+' — успех!</b>'
+        text='<b>Бросок '+v+'</b>'
           +'<div class="hgap"></div>'
           +'Ты выхватил верёвку из-под паука. Он метнулся следом, но промахнулся — и остался в нише один.';
       }else{
-        text='<b>Бросок '+v+' — неудача.</b>'
+        text='<b>Бросок '+v+'</b>'
           +'<div class="hgap"></div>'
           +'Ты потянулся за верёвкой — и паук ударил первым. Укус в руку, резкий, обжигающий. Ты отступаешь, но верёвку не бросаешь.'
           +'<div class="hgap"></div><b>−1 сердце</b>';
@@ -282,7 +281,7 @@ function play(c){
         text+='<div class="hgap"></div><b>Мешок полон — '+ITEMS[item].n+' остаётся в нише</b>';
       }
       _showRollOutcome(text,target,outcome,v);
-    },outcome,diceMsg);
+    },outcome);
     return;
   }
 
@@ -294,19 +293,18 @@ function play(c){
     const v=diceRoll(has('horseshoe'));
     const ok=v>=3;
     const outcome=ok?'win':'lose';
-    const diceMsg=ok?('Бросок '+v+' — успех!'):('Бросок '+v+' — неудача');
     showDie(v,function(){
       busy=false;
       if(!ok){S.hp--;}
       save();
       let text;
       if(ok){
-        text='<b>Бросок '+v+' — успех!</b>';
+        text='<b>Бросок '+v+'</b>';
       }else{
-        text='<b>Бросок '+v+' — неудача.</b><div class="hgap"></div><b>−1 сердце</b>';
+        text='<b>Бросок '+v+'</b><div class="hgap"></div><b>−1 сердце</b>';
       }
       _showRollOutcome(text,ok?okNode:failNode,outcome,v);
-    },outcome,diceMsg);
+    },outcome);
     return;
   }
 
@@ -317,7 +315,6 @@ function play(c){
     const v=diceRoll(has('horseshoe'));
     const ok=v>=3;
     const outcome=ok?'win':'lose';
-    const diceMsg=ok?('Бросок '+v+' — удача!'):('Бросок '+v+' — неудача');
     showDie(v,function(){
       busy=false;
       if(flag)S.flags[flag]=1;
@@ -329,12 +326,12 @@ function play(c){
       save();
       let text;
       if(ok){
-        text='<b>Бросок '+v+' — удача!</b><div class="hgap"></div><b>+1 сердце</b>';
+        text='<b>Бросок '+v+'</b><div class="hgap"></div><b>+1 сердце</b>';
       }else{
-        text='<b>Бросок '+v+' — неудача.</b><div class="hgap"></div><b>−1 сердце</b>';
+        text='<b>Бросок '+v+'</b><div class="hgap"></div><b>−1 сердце</b>';
       }
       _showRollOutcome(text,null,outcome,v);
-    },outcome,diceMsg);
+    },outcome);
     return;
   }
 
@@ -353,7 +350,6 @@ function play(c){
     const v=diceRoll(has('horseshoe'));
     const ok=v>=3;
     const outcome=ok?'win':'lose';
-    const diceMsg=ok?('Бросок '+v+' — успех!'):('Бросок '+v+' — неудача');
     showDie(v,function(){
       busy=false;
       if(!ok){
@@ -362,12 +358,12 @@ function play(c){
       save();
       let text;
       if(ok){
-        text='<b>Бросок '+v+' — успех!</b>';
+        text='<b>Бросок '+v+'</b>';
       }else{
-        text='<b>Бросок '+v+' — неудача.</b><div class="hgap"></div><b>−1 сердце</b>';
+        text='<b>Бросок '+v+'</b><div class="hgap"></div><b>−1 сердце</b>';
       }
       _showRollOutcome(text,ok?winNode:failNode,outcome,v);
-    },outcome,diceMsg);
+    },outcome);
     return;
   }
 

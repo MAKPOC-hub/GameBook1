@@ -1,10 +1,61 @@
 // engine_state_dialogs.js
-// v1.0.11 -> v1.0.12
+// v1.0.12 (текущая)
 // Проект: GameBook1
 // Функция: универсальные модальные окна — подтверждение покупки, подтверждение опасного действия, информационное окно, окно «Мешок полон», окно принудительной выдачи ключевого предмета, окно результата броска с кубиком, окно находки, окно полученных предметов
-// Изменение: перерисован кубик в окне результата броска. Раньше боковые грани были светлыми и плохо отличались от верхней — казалось, что видна только верхняя грань. Теперь левая боковая сделана средне-светлой, правая — тёмной (в тени), добавлены внутренние фаски вдоль рёбер, а тень под кубиком уменьшена. Точки на верхней грани размещены по сетке 3×3 с учётом изометрии и получили блик
+// Изменение: заголовок в окне результата броска теперь — случайная фраза из списка (10 для успеха, 9 для неудачи). Одна фраза не выпадает дважды подряд. При ничьей показываются два кубика с одинаковым значением
 
 'use strict';
+
+/* ===== Фразы для окна результата броска =====
+   Случайно выбираются в заголовок окна результата. Одна и та же фраза
+   не выпадает дважды подряд — храним индекс последней выпавшей.
+   Списки независимы: успех и неудача не влияют друг на друга. */
+const ROLL_SUCCESS_PHRASES=[
+  'Бинго!',
+  'Отличный бросок!',
+  'Удача!',
+  'Ловкость рук!',
+  'С блеском!',
+  'Легко!',
+  'Идеально!',
+  'Превосходно!',
+  'Судьба улыбнулась!',
+  'Кубик на твоей стороне!'
+];
+const ROLL_FAIL_PHRASES=[
+  'Не вышло.',
+  'Не в этот раз.',
+  'Увы.',
+  'Не сработало.',
+  'Провал.',
+  'Не повезло.',
+  'Промах.',
+  'Судьба отвернулась.',
+  'Кость упала не той стороной.'
+];
+let _lastSuccessIdx=-1;
+let _lastFailIdx=-1;
+
+/* ===== Выбор случайной фразы без мгновенного повтора =====
+   Из списка исключается индекс последней выпавшей фразы, из оставшихся
+   берётся случайная. Если список пуст (теоретически невозможно) — возврат
+   пустой строки, чтобы окно не сломалось. */
+function _pickSuccessPhrase(){
+  const list=ROLL_SUCCESS_PHRASES;
+  if(!list.length)return '';
+  const candidates=list.filter(function(_,i){return i!==_lastSuccessIdx;});
+  const pick=candidates[Math.floor(Math.random()*candidates.length)];
+  _lastSuccessIdx=list.indexOf(pick);
+  return pick;
+}
+function _pickFailPhrase(){
+  const list=ROLL_FAIL_PHRASES;
+  if(!list.length)return '';
+  const candidates=list.filter(function(_,i){return i!==_lastFailIdx;});
+  const pick=candidates[Math.floor(Math.random()*candidates.length)];
+  _lastFailIdx=list.indexOf(pick);
+  return pick;
+}
 
 /* ===== Инжект стилей для окна результата броска ===== */
 (function _injectRollStyles(){
@@ -13,8 +64,9 @@
   st.id='zl-roll-styles';
   st.textContent=
   '.rollres-title{text-align:center;font-variant:small-caps;letter-spacing:8px;font-size:calc(22px*var(--fz));font-weight:700;margin:8px 0 4px;text-shadow:0 2px 6px rgba(0,0,0,.7),0 0 14px currentColor;padding-left:8px}'
-  +'.rollres-dice{display:flex;justify-content:center;margin:6px 0 10px}'
+  +'.rollres-dice{display:flex;justify-content:center;gap:12px;margin:6px 0 10px}'
   +'.rollres-dice svg{width:130px;height:130px;filter:drop-shadow(0 6px 10px rgba(0,0,0,.55))}'
+  +'.rollres-dice-two svg{width:100px;height:100px}'
   +'.rollres-text{text-align:center;font-size:calc(15px*var(--fz));line-height:1.55;margin:8px 0}'
   +'.rollres-text b{color:#ffe9a0}'
   +'.itemrow{display:flex;flex-wrap:wrap;justify-content:center;align-items:flex-start;gap:12px;margin:8px 0 12px}'
@@ -36,7 +88,6 @@
    Точки на верхней грани разложены по сетке 3×3 с учётом изометрии.
    ↙️ Используется в: showRollResult (в этом же файле) */
 function _rollDiceFaceSVG(value){
-  /* Схемы точек как у настоящего кубика: номера позиций в сетке 3×3. */
   const schemes={
     1:[5],
     2:[3,7],
@@ -45,8 +96,6 @@ function _rollDiceFaceSVG(value){
     5:[1,3,5,7,9],
     6:[1,3,4,6,7,9]
   };
-  /* Позиции в местной системе верхней грани (u, v от 0 до 1).
-     Отступ от края 0.2 — точки не прижимаются к обводке. */
   const positions=[
     [0.2,0.2],[0.5,0.2],[0.8,0.2],
     [0.2,0.5],[0.5,0.5],[0.8,0.5],
@@ -58,25 +107,17 @@ function _rollDiceFaceSVG(value){
   list.forEach(function(n){
     const p=positions[n-1];
     const u=p[0], vv=p[1];
-    /* Изометрическая проекция: ромб с центром (50, 42),
-       горизонтальная полуширина 36, вертикальная полувысота 20. */
     const sx=50+(u-vv)*36;
     const sy=42+(u+vv-1)*20;
     dotsSvg+='<circle cx="'+sx.toFixed(1)+'" cy="'+sy.toFixed(1)+'" r="3" fill="#2f2417"/>';
     dotsSvg+='<circle cx="'+(sx-0.8).toFixed(1)+'" cy="'+(sy-0.8).toFixed(1)+'" r="1" fill="#6a5a40" opacity="0.65"/>';
   });
   return '<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">'
-    /* Тень под кубиком. Узкая — чтобы не сливалась с боковыми гранями. */
     +'<ellipse cx="50" cy="91" rx="34" ry="4" fill="rgba(0,0,0,.5)"/>'
-    /* Левая боковая грань — освещена. */
     +'<polygon points="14,42 50,62 50,86 14,66" fill="#c9a86a" stroke="#3a2410" stroke-width="1.4" stroke-linejoin="round"/>'
-    /* Правая боковая грань — в тени. */
     +'<polygon points="50,62 86,42 86,66 50,86" fill="#7a5a2a" stroke="#3a2410" stroke-width="1.4" stroke-linejoin="round"/>'
-    /* Верхняя грань — самая светлая. */
     +'<polygon points="50,22 86,42 50,62 14,42" fill="#f7ead0" stroke="#3a2410" stroke-width="1.4" stroke-linejoin="round"/>'
-    /* Внутренняя фаска верхней грани: тонкая светлая линия вдоль рёбер. */
     +'<polygon points="50,26 81,42 50,58 19,42" fill="none" stroke="#d9c08a" stroke-width="0.8" opacity="0.7"/>'
-    /* Внутренние фаски боковых граней — для объёма. */
     +'<path d="M18 44 L18 64 M22 66 L22 82" stroke="#e0c898" stroke-width="0.6" opacity="0.4" fill="none"/>'
     +'<path d="M82 44 L82 64 M78 66 L78 82" stroke="#4a3420" stroke-width="0.6" opacity="0.5" fill="none"/>'
     +dotsSvg
@@ -84,6 +125,11 @@ function _rollDiceFaceSVG(value){
 }
 
 /* ===== Окно результата броска =====
+   Заголовок: для успеха и неудачи — случайная фраза из списка (без
+   мгновенного повтора), для ничьей — слово «НИЧЬЯ».
+   Кубик: при ничьей показываются два кубика с одинаковым значением —
+   визуально это означает, что обе стороны выбросили одно и то же.
+   Текст под кубиком приходит снаружи и уже не содержит слов успех/неудача.
    ↙️ Используется в: engine_story_special.js (_showRollOutcome) */
 function showRollResult(opts,onClose){
   const old=document.getElementById('rollresult');
@@ -94,12 +140,27 @@ function showRollResult(opts,onClose){
   const diceValue=(opts&&opts.dice)||1;
   const text=(opts&&opts.text)||'';
   let titleText='',titleColor='',borderColor='';
-  if(outcome==='win'){titleText='УСПЕХ';titleColor='#a8f08a';borderColor='#8fe08a';}
-  else if(outcome==='lose'){titleText='НЕУДАЧА';titleColor='#ff9a85';borderColor='#c96a5a';}
-  else{titleText='НИЧЬЯ';titleColor='#ffe07a';borderColor='#e8c76a';}
+  if(outcome==='win'){
+    titleText=_pickSuccessPhrase();
+    titleColor='#a8f08a';borderColor='#8fe08a';
+  }else if(outcome==='lose'){
+    titleText=_pickFailPhrase();
+    titleColor='#ff9a85';borderColor='#c96a5a';
+  }else{
+    titleText='НИЧЬЯ';
+    titleColor='#ffe07a';borderColor='#e8c76a';
+  }
+  let diceHTML='';
+  if(outcome==='tie'){
+    const d1=diceValue;
+    const d2=(opts&&typeof opts.dice2==='number')?opts.dice2:diceValue;
+    diceHTML='<div class="rollres-dice rollres-dice-two">'+_rollDiceFaceSVG(d1)+_rollDiceFaceSVG(d2)+'</div>';
+  }else{
+    diceHTML='<div class="rollres-dice">'+_rollDiceFaceSVG(diceValue)+'</div>';
+  }
   ov.innerHTML='<div class="invbox detbox" style="max-width:400px;border-color:'+borderColor+';box-shadow:0 0 20px rgba(0,0,0,.6),inset 0 0 20px rgba(0,0,0,.25)">'
     +'<div class="rollres-title" style="color:'+titleColor+'">'+titleText+'</div>'
-    +'<div class="rollres-dice">'+_rollDiceFaceSVG(diceValue)+'</div>'
+    +diceHTML
     +'<div class="rollres-text">'+text+'</div>'
     +'<div style="display:flex;justify-content:center;margin-top:16px">'
     +'<button class="btn btn-acc" id="rr_ok">Далее</button>'
