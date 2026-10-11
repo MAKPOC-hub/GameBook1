@@ -1,8 +1,8 @@
 // engine_state_dialogs.js
-// v1.0.5 -> v1.0.6
+// v1.0.7
 // Проект: GameBook1
 // Функция: универсальные модальные окна — подтверждение покупки, информационное окно, окно «Мешок полон», окно принудительной выдачи ключевого предмета, окно результата броска с кубиком, окно находки
-// Изменение: в окне результата находки (showPickupResult) и в окне принудительной выдачи (showForceGetDialog) сетка предметов заменена с grid на гибкий контейнер с центрированием. Раньше при одном-двух предметах они прижимались к левому краю, а справа оставалось пустое место. Теперь предметы идут по центру независимо от их количества. Это правило 10.9
+// Содержит функцию покупки ячейки прямо из окна переполнения, акцентную зелёную кнопку «Назад» и серую «Продолжить»
 
 'use strict';
 
@@ -17,18 +17,13 @@
   +'.rollres-dice svg{width:130px;height:130px;filter:drop-shadow(0 6px 10px rgba(0,0,0,.55))}'
   +'.rollres-text{text-align:center;font-size:calc(15px*var(--fz));line-height:1.55;margin:8px 0}'
   +'.rollres-text b{color:#ffe9a0}'
-  /* Гибкий контейнер для предметов. Используется в окнах находки и
-     принудительной выдачи. Заменяет собой сетку из фиксированного числа
-     колонок: при одном-двух предметах они всё равно стоят по центру. */
   +'.itemrow{display:flex;flex-wrap:wrap;justify-content:center;align-items:flex-start;gap:12px;margin:8px 0 12px}'
-  +'.itemrow .itemcell{width:88px;flex:0 0 auto;text-align:center}';
+  +'.itemrow .itemcell{width:88px;flex:0 0 auto;text-align:center}'
+  +'.btn-acc{background:linear-gradient(#8fae62,#6d8c4a)!important;border-color:#b8d494!important;color:#10160c!important;font-weight:700}';
   document.head.appendChild(st);
 })();
 
 /* ===== Рисунок кубика, лежащего на столе =====
-   Кубик нарисован в изометрии: видна верхняя грань с точками (та цифра,
-   которая выпала) и две боковые грани. Под кубиком — небольшая тень.
-   Схема точек на гранях — как у настоящего кубика.
    ↙️ Используется в: showRollResult (в этом же файле) */
 function _rollDiceFaceSVG(value){
   const dots={
@@ -61,9 +56,6 @@ function _rollDiceFaceSVG(value){
 }
 
 /* ===== Окно результата броска =====
-   Показывает лежащий кубик с выпавшей гранью, крупный заголовок
-   «УСПЕХ» / «НЕУДАЧА» / «НИЧЬЯ» и текст исхода. Рамка окна окрашена
-   по результату: зелёная, красная или жёлтая.
    ↙️ Используется в: engine_story_special.js (_showRollOutcome) */
 function showRollResult(opts,onClose){
   const old=document.getElementById('rollresult');
@@ -82,7 +74,7 @@ function showRollResult(opts,onClose){
     +'<div class="rollres-dice">'+_rollDiceFaceSVG(diceValue)+'</div>'
     +'<div class="rollres-text">'+text+'</div>'
     +'<div style="display:flex;justify-content:center;margin-top:16px">'
-    +'<button class="btn" id="rr_ok" style="background:linear-gradient(#8fae62,#6d8c4a);border-color:#b8d494;color:#10160c">Далее</button>'
+    +'<button class="btn btn-acc" id="rr_ok">Далее</button>'
     +'</div>'
     +'</div>';
   document.body.appendChild(ov);
@@ -91,24 +83,51 @@ function showRollResult(opts,onClose){
     if(typeof onClose==='function')onClose();
   }
   ov.querySelector('#rr_ok').addEventListener('click',close);
-  /* Клик по фону НЕ закрывает окно результата броска — игрок должен
-     осознанно нажать «Далее», иначе он не увидит текст исхода. */
 }
 window.showRollResult=showRollResult;
 
+/* ===== Покупка ячейки мешка из окна переполнения =====
+   Списывает 3 осколка, увеличивает bagExt на 1, сохраняет.
+   Закрывает все окна переполнения и перерисовывает экран.
+   ↗️ getAdCoins, spendAdCoins — в: settings.js
+   ↙️ Используется в: showPickupResult, showBagFullDialog (в этом же файле) */
+function _tryBuySlotFromOverflow(){
+  const COST=3;
+  const MAXEXT=5;
+  if((S.bagExt||0)>=MAXEXT){toast('Все премиум-ячейки уже открыты');return false;}
+  const cur=(typeof window.getAdCoins==='function')?window.getAdCoins():0;
+  if(cur<COST){toast('Не хватает осколков: нужно '+COST+', у вас '+cur);return false;}
+  function doPurchase(){
+    if(typeof window.spendAdCoins!=='function'||!window.spendAdCoins(COST)){
+      toast('Не удалось списать осколки');return;
+    }
+    S.bagExt=(S.bagExt||0)+1;
+    save();
+    toast('Новая ячейка мешка открыта! (−'+COST+' осколка)');
+    /* Закрываем все возможные окна переполнения. */
+    const pk=document.getElementById('pickupresult');
+    if(pk&&pk.parentNode)pk.parentNode.removeChild(pk);
+    const bf=document.getElementById('bagfulldialog');
+    if(bf&&bf.parentNode)bf.parentNode.removeChild(bf);
+    const fg=document.getElementById('forcegetdialog');
+    if(fg&&fg.parentNode)fg.parentNode.removeChild(fg);
+    if(typeof render==='function')render();
+    if(typeof renderQuickbar==='function')renderQuickbar();
+  }
+  if(typeof window.confirmBuy==='function'){
+    window.confirmBuy('ячейка мешка', COST, doPurchase);
+    return true;
+  }
+  doPurchase();
+  return true;
+}
+
 /* ===== Окно находки, когда места в мешке не хватает =====
-   Показывается, если игрок нажал карту находки, но в мешке недостаточно
-   свободных слотов для всех предметов. В окне видны все предметы находки:
-   те, что поместятся — яркие; те, что не поместятся — затемнённые.
-   Предметы всегда идут по центру, независимо от их количества (правило 10.9).
-   У игрока две кнопки:
-   — «Назад»: закрыть окно и остаться на узле. Ничего не выдаётся —
-     ни предметы, ни золото. Игрок может открыть мешок, выбросить ненужное,
-     посмотреть рекламу за осколки и купить новую ячейку — а затем снова
-     нажать карту находки и забрать всё, что не поместилось раньше.
-   — «Продолжить»: забрать столько предметов, сколько помещается в текущий
-     мешок, и уйти дальше. Непоместившиеся предметы остаются на месте
-     навсегда — вернуться в этот узел уже нельзя.
+   Три кнопки:
+   — «Назад» (акцентная, зелёная): остаться на узле. Ничего не выдаётся.
+   — «Купить ячейку мешка — 3 осколка»: списывает осколки, увеличивает
+     мешок, закрывает окно и перерисовывает узел.
+   — «Продолжить» (серая): забрать что помещается и уйти дальше.
    ↙️ Используется в: engine_story_special.js (play — блок c.pick) */
 function showPickupResult(items,free,onBack,onContinue){
   const old=document.getElementById('pickupresult');
@@ -131,13 +150,18 @@ function showPickupResult(items,free,onBack,onContinue){
       +'</div>';
   }
 
-  /* Гибкий контейнер с центрированием. Предметы идут по центру при любом
-     количестве — один, два, три, пять. */
   let grid='<div class="itemrow">';
   items.forEach(function(id,i){
     grid+=_itemCardHTML(id,i<free);
   });
   grid+='</div>';
+
+  const cur=(typeof window.getAdCoins==='function')?window.getAdCoins():0;
+  const canBuy=((S.bagExt||0)<5)&&(cur>=3);
+  const adIconFn=window.adIcon||function(){return '';};
+  const buyBlock=canBuy
+    ? '<div style="text-align:center;margin-top:10px"><button class="btn" id="pk_buy">Купить ячейку мешка — '+adIconFn(18)+' 3</button></div>'
+    : '<div style="text-align:center;font-size:12px;opacity:.7;margin-top:10px">Для покупки ячейки нужно 3 осколка. У вас: '+cur+'.</div>';
 
   ov.innerHTML='<div class="invbox detbox" style="max-width:420px">'
     +'<h3 style="margin-bottom:4px">Мешок полон</h3>'
@@ -145,11 +169,12 @@ function showPickupResult(items,free,onBack,onContinue){
     +'<div style="text-align:center;font-size:14px;line-height:1.5;margin:6px 0 4px">'
     +'В мешке не хватает места для всей находки.'
     +'<div class="hgap"></div>'
-    +'Освободите место в рюкзаке или купите ячейку — и возьмите находку снова.'
+    +'Лучше вернуться, освободить место или купить ячейку — и взять находку снова.'
     +'</div>'
-    +'<div style="display:flex;justify-content:center;align-items:center;gap:12px;margin-top:16px;flex-wrap:wrap">'
-    +'<button class="btn" id="pk_back">Назад</button>'
-    +'<button class="btn" id="pk_cont" style="background:linear-gradient(#8fae62,#6d8c4a);border-color:#b8d494;color:#10160c">Продолжить</button>'
+    +buyBlock
+    +'<div style="display:flex;justify-content:center;align-items:center;gap:12px;margin-top:14px;flex-wrap:wrap">'
+    +'<button class="btn btn-acc" id="pk_back">Назад</button>'
+    +'<button class="btn" id="pk_cont">Продолжить</button>'
     +'</div>'
     +'</div>';
   document.body.appendChild(ov);
@@ -162,14 +187,18 @@ function showPickupResult(items,free,onBack,onContinue){
     close();
     if(typeof onContinue==='function')onContinue();
   });
-  /* Клик по фону не закрывает окно — игрок должен осознанно выбрать:
-     остаться или уйти. */
+  const buy=ov.querySelector('#pk_buy');
+  if(buy){
+    buy.addEventListener('click',function(){
+      _tryBuySlotFromOverflow();
+    });
+  }
 }
 window.showPickupResult=showPickupResult;
 
 /* ===== Универсальный диалог подтверждения покупки =====
    ↗️ adIcon — в: settings.js
-   ↙️ Используется в: engine_state_cooldown.js, engine_render_quickbar.js, engine_render_inventory.js, engine_render_start_item.js, settings.js, cardbacks.js */
+   ↙️ Используется в: engine_state_cooldown.js, engine_render_quickbar.js, engine_render_inventory.js, engine_render_start_item.js, settings.js, cardbacks.js, _tryBuySlotFromOverflow (в этом же файле) */
 function confirmBuy(name, cost, onConfirm){
   const old=document.getElementById('buyconfirm');
   if(old&&old.parentNode)old.parentNode.removeChild(old);
@@ -186,7 +215,7 @@ function confirmBuy(name, cost, onConfirm){
     +'<span>?</span>'
     +'</div>'
     +'<div style="display:flex;justify-content:center;align-items:center;gap:16px;margin-top:16px">'
-    +'<button class="btn" id="buyc_yes" style="background:linear-gradient(#8fae62,#6d8c4a);border-color:#b8d494;color:#10160c">Купить</button>'
+    +'<button class="btn btn-acc" id="buyc_yes">Купить</button>'
     +'<button class="btn" id="buyc_no">Отмена</button>'
     +'</div>'
     +'</div>';
@@ -202,7 +231,6 @@ function confirmBuy(name, cost, onConfirm){
 window.confirmBuy=confirmBuy;
 
 /* ===== Универсальное информационное окно =====
-   Показывает текст + кнопку «Далее». Игрок читает и сам закрывает.
    ↙️ Используется в: engine_story_special.js (play — при c.toastMsg) */
 function showInfo(text, onClose){
   const old=document.getElementById('infodialog');
@@ -212,7 +240,7 @@ function showInfo(text, onClose){
   ov.innerHTML='<div class="invbox detbox" style="max-width:380px">'
     +'<div style="text-align:center;font-size:16px;line-height:1.55;margin:10px 0">'+text+'</div>'
     +'<div style="display:flex;justify-content:center;margin-top:16px">'
-    +'<button class="btn" id="info_ok" style="background:linear-gradient(#8fae62,#6d8c4a);border-color:#b8d494;color:#10160c">Далее</button>'
+    +'<button class="btn btn-acc" id="info_ok">Далее</button>'
     +'</div>'
     +'</div>';
   document.body.appendChild(ov);
@@ -226,11 +254,9 @@ function showInfo(text, onClose){
 window.showInfo=showInfo;
 
 /* ===== Окно «Мешок полон» (одиночный предмет) =====
-   Показывается, когда игрок получает один предмет, но в мешке нет места
-   совсем. Две кнопки: «Назад» (остаться на узле) и «Продолжить»
-   (уйти дальше без предмета). Для случая находки с несколькими предметами
-   используется showPickupResult (см. выше) — там свой формат окна.
-   ↗️ ITEMS, ItemCards — в: engine_data_items.js, itemcards_export.js
+   Три кнопки: «Назад» (зелёная), «Купить ячейку» (если осколков хватает),
+   «Продолжить» (серая).
+   ↘️ _tryBuySlotFromOverflow — в этом же файле
    ↙️ Используется в: engine_story_special.js (play — ветка checkTake),
       engine_checkpoints_logic.js (обёртка go — авто-выдача при autoGet) */
 function showBagFullDialog(itemId, onBack, onContinue){
@@ -244,16 +270,23 @@ function showBagFullDialog(itemId, onBack, onContinue){
   if(a){
     preview='<div style="display:flex;justify-content:center;margin:4px 0 12px"><div class="gbp" style="--cbg:'+a.bg+';--cbr:'+a.br+';width:110px"><div class="gbp-art">'+a.art+'</div></div></div>';
   }
+  const cur=(typeof window.getAdCoins==='function')?window.getAdCoins():0;
+  const adIconFn=window.adIcon||function(){return '';};
+  const canBuy=((S.bagExt||0)<5)&&(cur>=3);
+  const buyBlock=canBuy
+    ? '<div style="text-align:center;margin-top:10px"><button class="btn" id="bagf_buy">Купить ячейку мешка — '+adIconFn(18)+' 3</button></div>'
+    : '<div style="text-align:center;font-size:12px;opacity:.7;margin-top:10px">Для покупки ячейки нужно 3 осколка. У вас: '+cur+'.</div>';
   ov.innerHTML='<div class="invbox detbox" style="max-width:380px">'
     +'<h3 style="margin-bottom:6px">Мешок полон</h3>'
     +preview
     +'<div style="text-align:center;font-size:15px;line-height:1.5;margin:8px 0">'
     +'<b style="color:#ffe9a0">'+info.n+'</b> не может добавиться в инвентарь.'
-    +'<div class="hgap"></div>Освободите место в рюкзаке или купите ячейку — и возьмите предмет снова.'
+    +'<div class="hgap"></div>Лучше вернуться, освободить место или купить ячейку — и взять предмет снова.'
     +'</div>'
-    +'<div style="display:flex;justify-content:center;align-items:center;gap:12px;margin-top:16px;flex-wrap:wrap">'
-    +'<button class="btn" id="bagf_back">Назад</button>'
-    +'<button class="btn" id="bagf_cont" style="background:linear-gradient(#8fae62,#6d8c4a);border-color:#b8d494;color:#10160c">Продолжить</button>'
+    +buyBlock
+    +'<div style="display:flex;justify-content:center;align-items:center;gap:12px;margin-top:14px;flex-wrap:wrap">'
+    +'<button class="btn btn-acc" id="bagf_back">Назад</button>'
+    +'<button class="btn" id="bagf_cont">Продолжить</button>'
     +'</div>'
     +'</div>';
   document.body.appendChild(ov);
@@ -266,17 +299,20 @@ function showBagFullDialog(itemId, onBack, onContinue){
     close();
     if(typeof onContinue==='function')onContinue();
   });
+  const buy=ov.querySelector('#bagf_buy');
+  if(buy){
+    buy.addEventListener('click',function(){
+      _tryBuySlotFromOverflow();
+    });
+  }
   ov.addEventListener('click',function(e){if(e.target===ov)close();});
 }
 window.showBagFullDialog=showBagFullDialog;
 
 /* ===== Окно принудительной выдачи ключевого предмета =====
-   Показывается, когда игрок вошёл на узел с forceGet, но мешок полон.
-   В отличие от showBagFullDialog, окно нельзя закрыть, не сделав выбор.
-   Игрок либо выбрасывает один предмет (тогда ключевой занимает его место),
-   либо покупает ячейку за 3 осколка (тогда ключевой кладётся в новую).
-   Перфокарты выбрасывать нельзя — они нужны для головоломки в главе 2.
-   Предметы в этом окне центрируются при любом количестве (правило 10.9).
+   Окно нельзя закрыть, не сделав выбор. Игрок либо выбрасывает один
+   предмет (тогда ключевой занимает его место), либо покупает ячейку
+   за 3 осколка. Перфокарты выбрасывать нельзя.
    ↗️ ITEMS, ItemCards — в: engine_data_items.js, itemcards_export.js
    ↗️ getAdCoins, spendAdCoins — в: settings.js
    ↙️ Используется в: engine_checkpoints_logic.js (обёртка go — ветка forceGet) */
@@ -335,7 +371,6 @@ function showForceGetDialog(itemId, onContinue){
   function close(){if(ov.parentNode)ov.parentNode.removeChild(ov);}
   function bindEvents(){
     ov.querySelectorAll('.itemcell').forEach(function(el){
-      if(el.querySelector('.bcell-name')&&el.style.cursor==='not-allowed')return;
       if(el.style.cursor!=='pointer')return;
       el.addEventListener('click',function(){
         const id=el.getAttribute('data-drop');
