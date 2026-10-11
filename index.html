@@ -1,8 +1,8 @@
 <!-- index.html -->
-<!-- v2.6.9 -->
+<!-- v2.6.9 -> v2.6.10 -->
 <!-- Проект: GameBook1 -->
 <!-- Функция: разметка игры и подключение файлов -->
-<!-- Содержит подключение нового файла backicons_gallery.js — галереи вариантов иконки «Шаг назад» -->
+<!-- Изменение: иконка кнопки «Шаг назад» заменена на выбранный вариант «С точкой» — рука-указатель с хвостом вверх и точкой на пальце. Кнопка теперь вызывает goBack (откат за 1 осколок, до 3 шагов) -->
 
 <!DOCTYPE html>
 <html lang="ru">
@@ -28,18 +28,17 @@
 </svg>
 <span class="pl1">История</span>
 </button>
-<button class="histbtn" id="backb" title="Шаг назад (варианты)">
+<button class="histbtn" id="backb" title="Шаг назад (1 осколок)">
 <svg viewBox="0 0 32 32" width="24" height="24" aria-hidden="true">
 <defs>
-<linearGradient id="woodBackG" x1="0" y1="0" x2="0" y2="1">
+<linearGradient id="backWoodG" x1="0" y1="0" x2="0" y2="1">
 <stop offset="0" stop-color="#c9a06a"/>
 <stop offset="0.5" stop-color="#9a6a3a"/>
 <stop offset="1" stop-color="#6b4520"/>
 </linearGradient>
 </defs>
-<path d="M10 8 L2 16 L10 24 L10 19 L22 19 L22 26 L28 26 L28 17 Q28 13 24 13 L10 13 Z" fill="url(#woodBackG)" stroke="#3a2410" stroke-width="1.5" stroke-linejoin="round"/>
-<path d="M12 14 L22 14" stroke="#e8c088" stroke-width=".8" opacity=".4" stroke-linecap="round" fill="none"/>
-<path d="M25 15 L25 24" stroke="#5b422a" stroke-width=".6" opacity=".35" stroke-linecap="round" fill="none"/>
+<path d="M11 8 L3 16 L11 24 L11 20 L20 20 Q26 20 28 8 L30 6 Q26 10 20 12 L11 12 Z" fill="url(#backWoodG)" stroke="#2a1a0c" stroke-width="1.5" stroke-linejoin="round"/>
+<circle cx="16" cy="16" r="1.5" fill="#2a1a0c"/>
 </svg>
 </button>
 </div>
@@ -132,7 +131,7 @@
 <script src="bg.js"></script>
 <script src="cardbacks.js"></script>
 
-<!-- Галерея вариантов иконки «Шаг назад» (витрина, выбор пока не сохраняется) -->
+<!-- Галерея вариантов иконки «Шаг назад» (не вызывается из интерфейса, оставлена на будущее) -->
 <script src="backicons_gallery.js"></script>
 
 <!-- Сюжет главы 1 -->
