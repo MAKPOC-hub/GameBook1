@@ -1,8 +1,8 @@
 // engine_state_dialogs.js
-// v1.0.4 -> v1.0.5
+// v1.0.5 -> v1.0.6
 // Проект: GameBook1
-// Функция: универсальные модальные окна — подтверждение покупки, информационное окно, окно «Мешок полон», окно принудительной выдачи ключевого предмета, окно результата броска с кубиком, окно результата находки
-// Изменение: в окне результата находки добавлена кнопка «Назад». Теперь у игрока есть выбор: остаться на узле (освободить место в мешке, посмотреть рекламу, купить ячейку, вернуться и забрать всё) или уйти дальше (взять только то, что поместилось). Раньше была только кнопка «Далее», и игрок уходил вперёд, навсегда теряя непоместившиеся предметы. Заодно исправлен текст: фраза «сможете забрать в следующий раз» некорректна, потому что переходы только вперёд — в этот узел вернуться нельзя. Теперь текст говорит: «Освободите место и возьмите находку снова»
+// Функция: универсальные модальные окна — подтверждение покупки, информационное окно, окно «Мешок полон», окно принудительной выдачи ключевого предмета, окно результата броска с кубиком, окно находки
+// Изменение: в окне результата находки (showPickupResult) и в окне принудительной выдачи (showForceGetDialog) сетка предметов заменена с grid на гибкий контейнер с центрированием. Раньше при одном-двух предметах они прижимались к левому краю, а справа оставалось пустое место. Теперь предметы идут по центру независимо от их количества. Это правило 10.9
 
 'use strict';
 
@@ -16,7 +16,12 @@
   +'.rollres-dice{display:flex;justify-content:center;margin:6px 0 10px}'
   +'.rollres-dice svg{width:130px;height:130px;filter:drop-shadow(0 6px 10px rgba(0,0,0,.55))}'
   +'.rollres-text{text-align:center;font-size:calc(15px*var(--fz));line-height:1.55;margin:8px 0}'
-  +'.rollres-text b{color:#ffe9a0}';
+  +'.rollres-text b{color:#ffe9a0}'
+  /* Гибкий контейнер для предметов. Используется в окнах находки и
+     принудительной выдачи. Заменяет собой сетку из фиксированного числа
+     колонок: при одном-двух предметах они всё равно стоят по центру. */
+  +'.itemrow{display:flex;flex-wrap:wrap;justify-content:center;align-items:flex-start;gap:12px;margin:8px 0 12px}'
+  +'.itemrow .itemcell{width:88px;flex:0 0 auto;text-align:center}';
   document.head.appendChild(st);
 })();
 
@@ -95,6 +100,7 @@ window.showRollResult=showRollResult;
    Показывается, если игрок нажал карту находки, но в мешке недостаточно
    свободных слотов для всех предметов. В окне видны все предметы находки:
    те, что поместятся — яркие; те, что не поместятся — затемнённые.
+   Предметы всегда идут по центру, независимо от их количества (правило 10.9).
    У игрока две кнопки:
    — «Назад»: закрыть окно и остаться на узле. Ничего не выдаётся —
      ни предметы, ни золото. Игрок может открыть мешок, выбросить ненужное,
@@ -119,13 +125,15 @@ function showPickupResult(items,free,onBack,onContinue){
     }else{
       inner='<div class="gbp"><div class="gbp-art" style="font-size:36px;color:#e9dfc5">'+info.n.charAt(0)+'</div></div>';
     }
-    return '<div style="text-align:center;opacity:'+(willFit?1:.45)+'">'
+    return '<div class="itemcell" style="opacity:'+(willFit?1:.45)+'">'
       +inner
       +'<div style="font-size:12px;color:#e9dfc5;margin-top:4px;line-height:1.2">'+info.n+'</div>'
       +'</div>';
   }
 
-  let grid='<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(80px,1fr));gap:10px;margin:8px 0 12px">';
+  /* Гибкий контейнер с центрированием. Предметы идут по центру при любом
+     количестве — один, два, три, пять. */
+  let grid='<div class="itemrow">';
   items.forEach(function(id,i){
     grid+=_itemCardHTML(id,i<free);
   });
@@ -268,6 +276,7 @@ window.showBagFullDialog=showBagFullDialog;
    Игрок либо выбрасывает один предмет (тогда ключевой занимает его место),
    либо покупает ячейку за 3 осколка (тогда ключевой кладётся в новую).
    Перфокарты выбрасывать нельзя — они нужны для головоломки в главе 2.
+   Предметы в этом окне центрируются при любом количестве (правило 10.9).
    ↗️ ITEMS, ItemCards — в: engine_data_items.js, itemcards_export.js
    ↗️ getAdCoins, spendAdCoins — в: settings.js
    ↙️ Используется в: engine_checkpoints_logic.js (обёртка go — ветка forceGet) */
@@ -289,7 +298,7 @@ function showForceGetDialog(itemId, onContinue){
   function buildBody(){
     const cells=[];
     S.inv.forEach(function(id){cells.push(id);});
-    let grid='';
+    let grid='<div class="itemrow">';
     cells.forEach(function(id){
       const ii=ITEMS[id]||{n:'?'};
       const aa=(window.ItemCards&&typeof window.ItemCards.get==='function')?window.ItemCards.get(id):null;
@@ -300,10 +309,12 @@ function showForceGetDialog(itemId, onContinue){
       }else{
         inner='<div class="gbp"><div class="gbp-art" style="font-size:40px;color:#e9dfc5">'+ii.n.charAt(0)+'</div></div>';
       }
-      grid+='<div class="bcell-card'+(prot?' protected':'')+'" data-drop="'+id+'" style="'+(prot?'opacity:.55;cursor:not-allowed;':'')+'">'
-        +'<div class="bcc-wrap">'+inner+'<div class="bcell-name">'+ii.n+'</div></div>'
+      grid+='<div class="itemcell" data-drop="'+id+'" style="'+(prot?'opacity:.55;cursor:not-allowed;':'cursor:pointer;')+'">'
+        +inner
+        +'<div class="bcell-name" style="position:static;margin-top:4px;background:linear-gradient(#f6ead0,#e6d2a8);border:2px solid #5b422a;border-radius:6px;padding:2px 4px;color:#2f2417;font-size:11px;font-weight:700;line-height:1.15;text-align:center">'+ii.n+'</div>'
         +'</div>';
     });
+    grid+='</div>';
     const cur=(typeof window.getAdCoins==='function')?window.getAdCoins():0;
     const maxExt=5;
     const canBuySlot=((S.bagExt||0)<maxExt)&&(cur>=3);
@@ -313,7 +324,7 @@ function showForceGetDialog(itemId, onContinue){
       +'<b style="color:#ffe9a0">'+info.n+'</b> — ключевой предмет. Он нужен для истории и не может быть потерян.'
       +'<div class="hgap"></div>Мешок полон. Выбрось один предмет, чтобы взять <b>'+info.n+'</b>.'
       +'</div>'
-      +'<div class="baggrid" style="grid-template-columns:repeat(4,1fr)">'+grid+'</div>'
+      +grid
       +(canBuySlot
         ?'<div style="text-align:center;margin-top:12px"><button class="btn adbtn" id="fg_buyslot"><span>Купить ячейку за</span>'+adIconFn(18)+' <b>3</b></button></div>'
         :'')
@@ -323,8 +334,9 @@ function showForceGetDialog(itemId, onContinue){
   document.body.appendChild(ov);
   function close(){if(ov.parentNode)ov.parentNode.removeChild(ov);}
   function bindEvents(){
-    ov.querySelectorAll('.bcell-card').forEach(function(el){
-      if(el.classList.contains('protected'))return;
+    ov.querySelectorAll('.itemcell').forEach(function(el){
+      if(el.querySelector('.bcell-name')&&el.style.cursor==='not-allowed')return;
+      if(el.style.cursor!=='pointer')return;
       el.addEventListener('click',function(){
         const id=el.getAttribute('data-drop');
         const idx=S.inv.indexOf(id);
@@ -333,7 +345,7 @@ function showForceGetDialog(itemId, onContinue){
         S.inv.push(itemId);
         recalcMaxHp();
         save();
-        if(typeof window.updateAdCoins==='function')window.updateAdCoins();
+        if(typeof window.updateHudCurrencies==='function')window.updateHudCurrencies();
         close();
         toast('Выброшено: '+(ITEMS[id]?ITEMS[id].n:id)+'. Получено: '+info.n);
         if(typeof onContinue==='function')onContinue();

@@ -1,8 +1,8 @@
 // engine_render_inventory.js
-// v1.0.0 -> v1.0.1
+// v1.0.1 -> v1.0.2
 // Проект: GameBook1
 // Функция: просмотр предмета и открытие мешка
-// Изменение: в окне описания предмета добавлена кнопка применения для свитка огня в бою. Также убрана автопроверка на пустой #invbox — окно мешка больше не открывается из HUD, но всё ещё может быть вызвано программно (например, при переполнении из диалогов). Функция openInv оставлена без изменений
+// Изменение: сетка предметов внутри окна мешка тоже центрируется при неполном ряде (правило 10.9). Раньше при одном-двух предметах они стояли в левом углу, а справа оставалось пустое место от пустых ячеек. Теперь используется flex-контейнер с центрированием; пустые ячейки идут после заполненных и визуально отделены отступом. Также мелкая правка: после обновления HUD-валют функция обновления вызывается как updateHudCurrencies
 
 'use strict';
 
@@ -14,6 +14,9 @@ const PURSE_SVG='<svg viewBox="0 0 40 48" width="38" height="46" aria-hidden="tr
    ⚠️ Окно мешка открывается только программно — при переполнении из
    диалогов «Мешок полон» или из вспомогательных сценариев. Кнопки мешка
    в верхней панели больше нет.
+   ⚠️ Заполненные ячейки идут первыми и центрируются. Пустые — после них,
+   тоже по центру, как отдельный блок. При одном-двух предметах они не
+   прижимаются к левому краю (правило 10.9).
    ↗️ ItemCards — в: itemcards.js
    ↗️ openDetail — в этом же файле
    ↗️ isReady, cdLeft — в: engine_state_cooldown.js
@@ -25,7 +28,9 @@ function openInv(){
   const owned=Math.min(PREMIUM, S.bagExt||0);
   const cap=BASE+owned;
   const premiumLeft=PREMIUM-owned;
-  let h='<div class="invhead"><span class="invh-bag">Мешок '+S.inv.length+'/'+cap+'</span><span class="pursewrap">'+PURSE_SVG+'<b class="purse-n">'+S.gold+'</b></span></div><div class="baggrid">';
+  let h='<div class="invhead"><span class="invh-bag">Мешок '+S.inv.length+'/'+cap+'</span><span class="pursewrap">'+PURSE_SVG+'<b class="purse-n">'+S.gold+'</b></span></div>';
+  /* Список предметов в виде гибкого центрированного ряда. */
+  h+='<div style="display:flex;flex-wrap:wrap;justify-content:center;gap:10px;margin-top:6px">';
   const groups=[],seen={};
   S.inv.forEach(function(it){if(seen[it]===undefined){seen[it]=1;groups.push(it);}else{seen[it]++;}});
   const hasCards=!!(window.ItemCards&&typeof window.ItemCards.get==='function');
@@ -36,8 +41,9 @@ function openInv(){
     if(!ready)cls+=' on-cd';
     let a=null;
     if(hasCards)a=window.ItemCards.get(it);
+    const cellStyle='width:92px;flex:0 0 auto;';
     if(a){
-      h+='<div class="'+cls+'" data-item="'+it+'" title="'+ITEMS[it].n+'">'
+      h+='<div class="'+cls+'" data-item="'+it+'" title="'+ITEMS[it].n+'" style="'+cellStyle+'">'
         +'<div class="bcc-wrap"><div class="gbp" style="--cbg:'+a.bg+';--cbr:'+a.br+'"><div class="gbp-art">'+a.art+'</div></div>'
         +(seen[it]>1?'<span class="cnt">'+seen[it]+'</span>':'')
         +(ready?'':'<span class="cd-badge">'+cd+'</span>')
@@ -45,15 +51,22 @@ function openInv(){
         +'</div></div>';
     }else{
       const name=(ITEMS[it]?ITEMS[it].n:'?');
-      h+='<div class="'+cls+'" data-item="'+it+'" title="'+name+'"><span style="font-size:28px;opacity:.7">'+name.charAt(0)+'</span>'+(seen[it]>1?'<span class="cnt">'+seen[it]+'</span>':'')+(ready?'':'<span class="cd-badge">'+cd+'</span>')+'<div class="bcell-name">'+name+'</div></div>';
+      h+='<div class="'+cls+'" data-item="'+it+'" title="'+name+'" style="'+cellStyle+'"><span style="font-size:28px;opacity:.7">'+name.charAt(0)+'</span>'+(seen[it]>1?'<span class="cnt">'+seen[it]+'</span>':'')+(ready?'':'<span class="cd-badge">'+cd+'</span>')+'<div class="bcell-name">'+name+'</div></div>';
     }
   });
-  for(let k=groups.length;k<cap;k++)h+='<div class="bcell empty"></div>';
-  const adIconFn=window.adIcon||function(){return '';};
-  for(let k=0;k<premiumLeft;k++){
-    h+='<div class="bcell premium" data-buy="1"><span class="price">'+adIconFn(32)+'<b>'+COST+'</b></span></div>';
+  h+='</div>';
+  /* Пустые ячейки и премиум — отдельным рядом ниже. */
+  const emptyCount=cap-groups.length;
+  if(emptyCount>0||premiumLeft>0){
+    h+='<div style="display:flex;flex-wrap:wrap;justify-content:center;gap:10px;margin-top:10px;border-top:1px dashed rgba(122,90,56,.35);padding-top:10px">';
+    for(let k=0;k<emptyCount;k++)h+='<div class="bcell empty" style="width:92px;flex:0 0 auto;aspect-ratio:5/7.2"></div>';
+    const adIconFn=window.adIcon||function(){return '';};
+    for(let k=0;k<premiumLeft;k++){
+      h+='<div class="bcell premium" data-buy="1" style="width:92px;flex:0 0 auto;aspect-ratio:5/7.2"><span class="price">'+adIconFn(32)+'<b>'+COST+'</b></span></div>';
+    }
+    h+='</div>';
   }
-  h+='</div><div style="text-align:center;margin-top:12px"><button class="btn" id="invc">Закрыть</button></div>';
+  h+='<div style="text-align:center;margin-top:12px"><button class="btn" id="invc">Закрыть</button></div>';
   box.innerHTML=h;
   $('#inv').classList.remove('hidden');
   box.querySelectorAll('.bcell[data-item],.bcell-card[data-item]').forEach(function(el){
@@ -142,7 +155,9 @@ function openDetail(it){
   if(u)u.addEventListener('click',function(){
     if(it==='scroll_heal'){
       S.inv.splice(S.inv.indexOf(it),1);healHp(2);toast('Исцеление (+2 сердца)');save();
-      det.classList.add('hidden');updateHudCurrencies();render();
+      det.classList.add('hidden');
+      if(typeof window.updateHudCurrencies==='function')window.updateHudCurrencies();
+      render();
     }else{eatItem(it);}
   });
   const fi=$('#detfire');
