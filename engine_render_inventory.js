@@ -1,8 +1,8 @@
 // engine_render_inventory.js
-// v1.0.2 -> v1.0.3
+// v1.0.3 -> v1.0.4
 // Проект: GameBook1
 // Функция: просмотр предмета и открытие мешка
-// Изменение: в окне описания предмета название разбивается на две строки, если содержит тире или угловые кавычки «…» — например, «Компас» на первой строке, «Истинный путь» на второй. Также кнопки внизу окна помещены в контейнер с отступом между ними — раньше они прилипали друг к другу, потому что стояли подряд через обычный пробел
+// Изменение: кнопка «Выкинуть» в окне описания предмета теперь вызывает подтверждение confirmAction. Игрок видит предупреждение «Выкинуть предмет?» с названием предмета и кнопками «Да, выкинуть» (красная) и «Отмена» (зелёная). Это защищает от случайного нажатия. Само удаление происходит только после подтверждения
 
 'use strict';
 
@@ -97,16 +97,14 @@ function doUnlockSlot(COST){
 /* ===== Просмотр предмета =====
    Открывается кликом по предмету в панели быстрого доступа или по предмету
    в окне мешка (которое теперь вызывается только программно).
-   ⚠️ Название предмета разбивается на две строки, если содержит конструкцию
-   вида «Компас «Истинный путь»» или «Меч путника — с ядром». Разбивка
-   делается по первому пробелу перед угловой кавычкой «…» или по тире.
-   Это нужно, чтобы длинные названия не ломались на узком экране.
-   ⚠️ Кнопки внизу помещены в контейнер с отступом между ними (gap:8px).
-   Раньше они стояли подряд через обычный пробел и визуально прилипали.
+   ⚠️ Кнопка «Выкинуть» теперь вызывает подтверждение — чтобы не потерять
+   предмет случайным нажатием. Удаление происходит только после нажатия
+   «Да, выкинуть» в окне подтверждения.
    ↗️ ItemCards — в: itemcards.js
    ↗️ applyItemFromBag, eatItem — в: engine_items_apply.js
    ↗️ resetCdForCoins — в: engine_state_cooldown.js
    ↗️ fireScroll — в: engine_combat.js
+   ↗️ confirmAction — в: engine_state_dialogs.js
    ↙️ Вызывается из: openInv (в этом же файле), renderQuickbar (engine_render_quickbar.js) */
 function openDetail(it){
   let det=$('#det');
@@ -124,11 +122,6 @@ function openDetail(it){
   }else{
     preview='<div class="det-preview"><div class="gbp" style="width:140px"><div class="gbp-art" style="font-size:52px;color:#e9dfc5">'+info.n.charAt(0)+'</div></div></div>';
   }
-  /* Разбивка названия на две строки:
-     — «Компас «Истинный путь»» → «Компас<br>«Истинный путь»»
-     — «Лютня «Эхо веков»» → «Лютня<br>«Эхо веков»»
-     — «Амулет стойкости» остаётся одной строкой (тире нет, кавычек нет).
-     Правило: если в названии есть пробел перед « — переносим там. */
   const rawName=String(info.n);
   let titleHTML=rawName;
   const quoteIdx=rawName.indexOf(' «');
@@ -139,13 +132,9 @@ function openDetail(it){
   const ready=isReady(it);
   const cd=cdLeft(it);
   const canHeal=!S.combat&&S.hp<S.maxhp&&HEALS[it];
-  /* Еда — съесть вне боя. */
   if(HEALS[it]&&canHeal)btns+='<button class="btn" id="detuse">Съесть (+'+HEALS[it]+' '+ico('heart',14)+')</button>';
-  /* Свиток лечения — сотворить вне боя. */
   if(it==='scroll_heal'&&canHeal)btns+='<button class="btn" id="detuse">Сотворить (+2 '+ico('heart',14)+')</button>';
-  /* Свиток огня — применить в бою. */
   if(it==='scroll_fire'&&S.combat)btns+='<button class="btn" id="detfire">Огненный шар (враг −2 '+ico('heart',14)+')</button>';
-  /* Особые предметы с перезарядкой. */
   if(it==='compass'||it==='flash'||it==='lute'||it==='vory_knife'){
     if(!ready){
       btns+='<button class="btn" id="detreset">Сбросить перезарядку (3 осколка)</button>';
@@ -180,11 +169,27 @@ function openDetail(it){
   if(rs)rs.addEventListener('click',function(){
     if(resetCdForCoins(it)){det.classList.add('hidden');}
   });
+  /* ⚠️ Выкидывание через подтверждение. */
   $('#detdrop').addEventListener('click',function(){
-    S.inv.splice(S.inv.indexOf(it),1);
-    recalcMaxHp();
-    toast('Выброшено: '+info.n);save();
-    det.classList.add('hidden');render();
+    if(typeof window.confirmAction==='function'){
+      window.confirmAction(
+        'Выкинуть предмет?',
+        '<b style="color:#ffe9a0">'+info.n+'</b> исчезнет из мешка навсегда. Вернуть его будет нельзя.',
+        'Да, выкинуть',
+        function(){
+          S.inv.splice(S.inv.indexOf(it),1);
+          recalcMaxHp();
+          toast('Выброшено: '+info.n);save();
+          det.classList.add('hidden');render();
+        }
+      );
+    }else{
+      /* Страховка: если окно подтверждения недоступно. */
+      S.inv.splice(S.inv.indexOf(it),1);
+      recalcMaxHp();
+      toast('Выброшено: '+info.n);save();
+      det.classList.add('hidden');render();
+    }
   });
   $('#detclose').addEventListener('click',function(){det.classList.add('hidden');});
 }

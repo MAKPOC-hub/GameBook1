@@ -1,8 +1,8 @@
 // engine_state_dialogs.js
-// v1.0.7 -> v1.0.8
+// v1.0.8 -> v1.0.9
 // Проект: GameBook1
-// Функция: универсальные модальные окна — подтверждение покупки, информационное окно, окно «Мешок полон», окно принудительной выдачи ключевого предмета, окно результата броска с кубиком, окно находки, окно полученных предметов
-// Изменение: добавлена функция showItemsReceived — окно с описанием всех полученных предметов. Показывается после того, как игрок сам выбрал взять предмет. У каждого предмета картинка, название и полное описание. Если вместе с предметами было получено золото — внизу добавляется строка «+N золотых». Это правило 10.10
+// Функция: универсальные модальные окна — подтверждение покупки, подтверждение опасного действия, информационное окно, окно «Мешок полон», окно принудительной выдачи ключевого предмета, окно результата броска с кубиком, окно находки, окно полученных предметов
+// Изменение: добавлена функция confirmAction — универсальное подтверждение опасного действия. Используется при выкидывании предмета из мешка, чтобы игрок не терял предмет случайным нажатием. Кнопка подтверждения красная, кнопка «Отмена» — зелёная акцентная. Клик по фону окно не закрывает
 
 'use strict';
 
@@ -20,7 +20,6 @@
   +'.itemrow{display:flex;flex-wrap:wrap;justify-content:center;align-items:flex-start;gap:12px;margin:8px 0 12px}'
   +'.itemrow .itemcell{width:88px;flex:0 0 auto;text-align:center}'
   +'.btn-acc{background:linear-gradient(#8fae62,#6d8c4a)!important;border-color:#b8d494!important;color:#10160c!important;font-weight:700}'
-  /* Окно полученных предметов: у каждого предмета блок с разделителем снизу. */
   +'.received-item{border-bottom:1px solid rgba(122,90,56,.35);padding-bottom:14px;margin-bottom:14px}'
   +'.received-item:last-of-type{border-bottom:none;padding-bottom:0}'
   +'.received-item .det-preview{margin:0 0 8px}'
@@ -94,14 +93,7 @@ function showRollResult(opts,onClose){
 window.showRollResult=showRollResult;
 
 /* ===== Окно полученных предметов =====
-   Показывается, когда игрок сам выбрал взять предмет. У каждого предмета
-   картинка, название и полное описание. Если вместе с предметами было
-   получено золото, внизу добавляется строка «+N золотых».
-   Кнопка «Далее» ведёт дальше. Окно нельзя закрыть кликом по фону —
-   игрок должен осознанно нажать «Далее».
-   ↗️ ITEMS, ItemCards — в: engine_data_items.js, itemcards_export.js
-   ↙️ Используется в: engine_story_special.js (play — блок c.pick)
-   ↘️ Связано с правилом 10.10 */
+   ↙️ Используется в: engine_story_special.js (play — блок c.pick) */
 function showItemsReceived(items,gold,onClose){
   const old=document.getElementById('itemsreceived');
   if(old&&old.parentNode)old.parentNode.removeChild(old);
@@ -138,12 +130,39 @@ function showItemsReceived(items,gold,onClose){
     if(typeof onClose==='function')onClose();
   }
   ov.querySelector('#ir_ok').addEventListener('click',close);
-  /* Клик по фону НЕ закрывает окно — игрок должен осознанно нажать «Далее». */
 }
 window.showItemsReceived=showItemsReceived;
 
+/* ===== Универсальное подтверждение опасного действия =====
+   Открывает окно с предупреждением. Кнопка подтверждения — красная,
+   кнопка отмены — зелёная акцентная. Клик по фону окно НЕ закрывает:
+   игрок должен сделать осознанный выбор.
+   ↙️ Используется в: engine_render_inventory.js (кнопка «Выкинуть»),
+      showForceGetDialog (выбор предмета для замены в этом же файле) */
+function confirmAction(title,text,okLabel,onConfirm){
+  const old=document.getElementById('actionconfirm');
+  if(old&&old.parentNode)old.parentNode.removeChild(old);
+  const ov=document.createElement('div');
+  ov.className='ovl';ov.id='actionconfirm';
+  ov.innerHTML='<div class="invbox detbox" style="max-width:380px">'
+    +'<h3 style="margin-bottom:10px">'+title+'</h3>'
+    +'<div style="text-align:center;font-size:15px;line-height:1.5;margin:10px 0">'+text+'</div>'
+    +'<div style="display:flex;justify-content:center;align-items:center;gap:16px;margin-top:16px;flex-wrap:wrap">'
+    +'<button class="btn" id="ac_yes" style="background:linear-gradient(#8a3a3a,#6a2020);border-color:#c96a5a;color:#ffd6cd;font-weight:700">'+(okLabel||'Да')+'</button>'
+    +'<button class="btn btn-acc" id="ac_no">Отмена</button>'
+    +'</div>'
+    +'</div>';
+  document.body.appendChild(ov);
+  function close(){if(ov.parentNode)ov.parentNode.removeChild(ov);}
+  ov.querySelector('#ac_yes').addEventListener('click',function(){
+    close();
+    if(typeof onConfirm==='function')onConfirm();
+  });
+  ov.querySelector('#ac_no').addEventListener('click',close);
+}
+window.confirmAction=confirmAction;
+
 /* ===== Покупка ячейки мешка из окна переполнения =====
-   ↗️ getAdCoins, spendAdCoins — в: settings.js
    ↙️ Используется в: showPickupResult, showBagFullDialog (в этом же файле) */
 function _tryBuySlotFromOverflow(){
   const COST=3;
@@ -176,8 +195,6 @@ function _tryBuySlotFromOverflow(){
 }
 
 /* ===== Окно находки, когда места в мешке не хватает =====
-   Три кнопки: «Назад» (зелёная), «Купить ячейку» (если осколков хватает),
-   «Продолжить» (серая).
    ↙️ Используется в: engine_story_special.js (play — блок c.pick) */
 function showPickupResult(items,free,onBack,onContinue){
   const old=document.getElementById('pickupresult');
@@ -303,8 +320,6 @@ function showInfo(text, onClose){
 window.showInfo=showInfo;
 
 /* ===== Окно «Мешок полон» (одиночный предмет) =====
-   Три кнопки: «Назад» (зелёная), «Купить ячейку» (если осколков хватает),
-   «Продолжить» (серая).
    ↙️ Используется в: engine_story_special.js (play — ветка checkTake),
       engine_checkpoints_logic.js (обёртка go — авто-выдача при autoGet) */
 function showBagFullDialog(itemId, onBack, onContinue){
@@ -359,7 +374,9 @@ window.showBagFullDialog=showBagFullDialog;
 
 /* ===== Окно принудительной выдачи ключевого предмета =====
    Окно нельзя закрыть, не сделав выбор. Игрок либо выбрасывает один
-   предмет, либо покупает ячейку за 3 осколка. Перфокарты выбрасывать нельзя.
+   предмет (с подтверждением — чтобы не потерять случайно), либо покупает
+   ячейку за 3 осколка. Перфокарты выбрасывать нельзя.
+   ↗️ confirmAction — в этом же файле
    ↙️ Используется в: engine_checkpoints_logic.js (обёртка go — ветка forceGet) */
 function showForceGetDialog(itemId, onContinue){
   const old=document.getElementById('forcegetdialog');
@@ -421,14 +438,24 @@ function showForceGetDialog(itemId, onContinue){
         const id=el.getAttribute('data-drop');
         const idx=S.inv.indexOf(id);
         if(idx<0)return;
-        S.inv.splice(idx,1);
-        S.inv.push(itemId);
-        recalcMaxHp();
-        save();
-        if(typeof window.updateHudCurrencies==='function')window.updateHudCurrencies();
-        close();
-        toast('Выброшено: '+(ITEMS[id]?ITEMS[id].n:id)+'. Получено: '+info.n);
-        if(typeof onContinue==='function')onContinue();
+        /* ⚠️ Перед выбрасыванием — подтверждение, чтобы не потерять
+           предмет случайным нажатием. */
+        const dropName=ITEMS[id]?ITEMS[id].n:id;
+        confirmAction(
+          'Выбросить предмет?',
+          '<b style="color:#ffe9a0">'+dropName+'</b> исчезнет из мешка навсегда. Его место займёт <b>'+info.n+'</b>.',
+          'Да, выбросить',
+          function(){
+            S.inv.splice(idx,1);
+            S.inv.push(itemId);
+            recalcMaxHp();
+            save();
+            if(typeof window.updateHudCurrencies==='function')window.updateHudCurrencies();
+            close();
+            toast('Выброшено: '+dropName+'. Получено: '+info.n);
+            if(typeof onContinue==='function')onContinue();
+          }
+        );
       });
     });
     const buy=ov.querySelector('#fg_buyslot');
