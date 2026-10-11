@@ -2,13 +2,13 @@
 // v1.0.12 (текущая)
 // Проект: GameBook1
 // Функция: универсальные модальные окна — подтверждение покупки, подтверждение опасного действия, информационное окно, окно «Мешок полон», окно принудительной выдачи ключевого предмета, окно результата броска с кубиком, окно находки, окно полученных предметов
-// Изменение: заголовок в окне результата броска теперь — случайная фраза из списка (10 для успеха, 9 для неудачи). Одна фраза не выпадает дважды подряд. При ничьей показываются два кубика с одинаковым значением
+// Изменение: заголовок окна результата броска снова «УСПЕХ»/«НЕУДАЧА»/«НИЧЬЯ». Случайная фраза (без мгновенного повтора) выводится отдельной строкой под кубиком — вместо подписи «Бросок N». При ничьей показываются два кубика с одинаковым значением
 
 'use strict';
 
 /* ===== Фразы для окна результата броска =====
-   Случайно выбираются в заголовок окна результата. Одна и та же фраза
-   не выпадает дважды подряд — храним индекс последней выпавшей.
+   Случайно выбираются под кубиком. Одна и та же фраза не выпадает
+   дважды подряд — храним индекс последней выпавшей.
    Списки независимы: успех и неудача не влияют друг на друга. */
 const ROLL_SUCCESS_PHRASES=[
   'Бинго!',
@@ -67,6 +67,7 @@ function _pickFailPhrase(){
   +'.rollres-dice{display:flex;justify-content:center;gap:12px;margin:6px 0 10px}'
   +'.rollres-dice svg{width:130px;height:130px;filter:drop-shadow(0 6px 10px rgba(0,0,0,.55))}'
   +'.rollres-dice-two svg{width:100px;height:100px}'
+  +'.rollres-phrase{text-align:center;font-size:calc(17px*var(--fz));font-weight:700;color:#ffe9a0;margin:2px 0 8px;text-shadow:0 1px 3px #000}'
   +'.rollres-text{text-align:center;font-size:calc(15px*var(--fz));line-height:1.55;margin:8px 0}'
   +'.rollres-text b{color:#ffe9a0}'
   +'.itemrow{display:flex;flex-wrap:wrap;justify-content:center;align-items:flex-start;gap:12px;margin:8px 0 12px}'
@@ -125,11 +126,12 @@ function _rollDiceFaceSVG(value){
 }
 
 /* ===== Окно результата броска =====
-   Заголовок: для успеха и неудачи — случайная фраза из списка (без
-   мгновенного повтора), для ничьей — слово «НИЧЬЯ».
-   Кубик: при ничьей показываются два кубика с одинаковым значением —
-   визуально это означает, что обе стороны выбросили одно и то же.
-   Текст под кубиком приходит снаружи и уже не содержит слов успех/неудача.
+   Заголовок: «УСПЕХ» / «НЕУДАЧА» / «НИЧЬЯ».
+   Под кубиком: случайная фраза из списка (без мгновенного повтора)
+   для успеха и неудачи. При ничьей фразы нет — показываются два кубика
+   с одинаковым значением, визуально это означает, что обе стороны
+   выбросили одно и то же.
+   Текст под фразой приходит снаружи — это описание последствий.
    ↙️ Используется в: engine_story_special.js (_showRollOutcome) */
 function showRollResult(opts,onClose){
   const old=document.getElementById('rollresult');
@@ -139,16 +141,15 @@ function showRollResult(opts,onClose){
   const outcome=(opts&&opts.outcome)||'tie';
   const diceValue=(opts&&opts.dice)||1;
   const text=(opts&&opts.text)||'';
-  let titleText='',titleColor='',borderColor='';
+  let titleText='',titleColor='',borderColor='',phrase='';
   if(outcome==='win'){
-    titleText=_pickSuccessPhrase();
-    titleColor='#a8f08a';borderColor='#8fe08a';
+    titleText='УСПЕХ';titleColor='#a8f08a';borderColor='#8fe08a';
+    phrase=_pickSuccessPhrase();
   }else if(outcome==='lose'){
-    titleText=_pickFailPhrase();
-    titleColor='#ff9a85';borderColor='#c96a5a';
+    titleText='НЕУДАЧА';titleColor='#ff9a85';borderColor='#c96a5a';
+    phrase=_pickFailPhrase();
   }else{
-    titleText='НИЧЬЯ';
-    titleColor='#ffe07a';borderColor='#e8c76a';
+    titleText='НИЧЬЯ';titleColor='#ffe07a';borderColor='#e8c76a';
   }
   let diceHTML='';
   if(outcome==='tie'){
@@ -158,9 +159,11 @@ function showRollResult(opts,onClose){
   }else{
     diceHTML='<div class="rollres-dice">'+_rollDiceFaceSVG(diceValue)+'</div>';
   }
+  const phraseHTML=phrase?'<div class="rollres-phrase">'+phrase+'</div>':'';
   ov.innerHTML='<div class="invbox detbox" style="max-width:400px;border-color:'+borderColor+';box-shadow:0 0 20px rgba(0,0,0,.6),inset 0 0 20px rgba(0,0,0,.25)">'
     +'<div class="rollres-title" style="color:'+titleColor+'">'+titleText+'</div>'
     +diceHTML
+    +phraseHTML
     +'<div class="rollres-text">'+text+'</div>'
     +'<div style="display:flex;justify-content:center;margin-top:16px">'
     +'<button class="btn btn-acc" id="rr_ok">Далее</button>'
