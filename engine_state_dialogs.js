@@ -2,7 +2,7 @@
 // v1.0.12 (текущая)
 // Проект: GameBook1
 // Функция: универсальные модальные окна — подтверждение покупки, подтверждение опасного действия, информационное окно, окно «Мешок полон», окно принудительной выдачи ключевого предмета, окно результата броска с кубиком, окно находки, окно полученных предметов
-// Изменение: заголовок окна результата броска снова «УСПЕХ»/«НЕУДАЧА»/«НИЧЬЯ». Случайная фраза (без мгновенного повтора) выводится отдельной строкой под кубиком — вместо подписи «Бросок N». При ничьей показываются два кубика с одинаковым значением
+// Изменение: на боковых гранях кубика в окне результата броска теперь тоже есть точки. Значения на левой и правой гранях вычисляются от верхней грани автоматически — кубик выглядит как настоящий, а не как пустой ромб
 
 'use strict';
 
@@ -86,7 +86,10 @@ function _pickFailPhrase(){
    Кубик нарисован в изометрии. Видны все три грани: верхняя с точками
    (выпавшее число), левая боковая и правая боковая. Левая освещена,
    правая в тени — между гранями хороший контраст, объём читается.
-   Точки на верхней грани разложены по сетке 3×3 с учётом изометрии.
+   Точки на всех трёх гранях. Значения на боковых гранях вычисляются от
+   верхней: левая = верх+1, правая = верх+3, с заворотом через 6 — чтобы
+   у каждого выпавшего значения боковые соседи были разные и кубик
+   выглядел как настоящий.
    ↙️ Используется в: showRollResult (в этом же файле) */
 function _rollDiceFaceSVG(value){
   const schemes={
@@ -103,25 +106,59 @@ function _rollDiceFaceSVG(value){
     [0.2,0.8],[0.5,0.8],[0.8,0.8]
   ];
   const v=Math.max(1,Math.min(6,parseInt(value,10)||1));
-  const list=schemes[v];
-  let dotsSvg='';
-  list.forEach(function(n){
+
+  /* Точки на верхней грани. Координаты считаются в изометрии верхнего
+     ромба с центром (50,42) и полуосями 36 и 20. */
+  let dotsTop='';
+  schemes[v].forEach(function(n){
     const p=positions[n-1];
     const u=p[0], vv=p[1];
     const sx=50+(u-vv)*36;
     const sy=42+(u+vv-1)*20;
-    dotsSvg+='<circle cx="'+sx.toFixed(1)+'" cy="'+sy.toFixed(1)+'" r="3" fill="#2f2417"/>';
-    dotsSvg+='<circle cx="'+(sx-0.8).toFixed(1)+'" cy="'+(sy-0.8).toFixed(1)+'" r="1" fill="#6a5a40" opacity="0.65"/>';
+    dotsTop+='<circle cx="'+sx.toFixed(1)+'" cy="'+sy.toFixed(1)+'" r="3" fill="#2f2417"/>';
+    dotsTop+='<circle cx="'+(sx-0.8).toFixed(1)+'" cy="'+(sy-0.8).toFixed(1)+'" r="1" fill="#6a5a40" opacity="0.65"/>';
   });
+
+  /* Значения на боковых гранях. Левая = верх+1, правая = верх+3,
+     обе с заворотом в диапазон 1..6. Для верхней 6: левая 1, правая 3.
+     Для верхней 1: левая 2, правая 4. Соседи всегда разные. */
+  const leftVal=((v+1)%6)+1;
+  const rightVal=((v+3)%6)+1;
+
+  /* Проекция точки с грани на экран. (u,vv) — координаты в пределах
+     грани: 0..1 по горизонтали, 0..1 по вертикали. Левый верхний угол
+     грани — (0,0), нижний правый — (1,1). */
+  function projectLeft(u,vv){return [14+36*u, 42+20*u+24*vv];}
+  function projectRight(u,vv){return [50+36*u, 62-20*u+24*vv];}
+
+  /* Общий помощник: точки на указанной грани по указанной схеме. */
+  function dotsOnFace(val, project, color){
+    const lst=schemes[val];
+    let s='';
+    lst.forEach(function(n){
+      const p=positions[n-1];
+      const pt=project(p[0],p[1]);
+      s+='<circle cx="'+pt[0].toFixed(1)+'" cy="'+pt[1].toFixed(1)+'" r="2.2" fill="'+color+'"/>';
+    });
+    return s;
+  }
+  const dotsLeft=dotsOnFace(leftVal, projectLeft, '#3a2410');
+  const dotsRight=dotsOnFace(rightVal, projectRight, '#1a0e06');
+
   return '<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">'
     +'<ellipse cx="50" cy="91" rx="34" ry="4" fill="rgba(0,0,0,.5)"/>'
+    /* Левая боковая грань: сначала заливка, потом точки поверх неё. */
     +'<polygon points="14,42 50,62 50,86 14,66" fill="#c9a86a" stroke="#3a2410" stroke-width="1.4" stroke-linejoin="round"/>'
+    +dotsLeft
+    /* Правая боковая грань: заливка темнее, точки поверх. */
     +'<polygon points="50,62 86,42 86,66 50,86" fill="#7a5a2a" stroke="#3a2410" stroke-width="1.4" stroke-linejoin="round"/>'
+    +dotsRight
+    /* Верхняя грань: светлая, с внутренней фаской и точками. */
     +'<polygon points="50,22 86,42 50,62 14,42" fill="#f7ead0" stroke="#3a2410" stroke-width="1.4" stroke-linejoin="round"/>'
     +'<polygon points="50,26 81,42 50,58 19,42" fill="none" stroke="#d9c08a" stroke-width="0.8" opacity="0.7"/>'
     +'<path d="M18 44 L18 64 M22 66 L22 82" stroke="#e0c898" stroke-width="0.6" opacity="0.4" fill="none"/>'
     +'<path d="M82 44 L82 64 M78 66 L78 82" stroke="#4a3420" stroke-width="0.6" opacity="0.5" fill="none"/>'
-    +dotsSvg
+    +dotsTop
     +'</svg>';
 }
 
