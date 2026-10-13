@@ -1,8 +1,8 @@
 /* style.css */
-/* v2.6.3 -> v2.6.4 */
+/* v2.6.4 -> v2.6.5 */
 /* Проект: GameBook1 */
 /* Функция: оформление игры (ХАД, панель текста, карты, оверлеи, анимации, панель быстрого доступа, галерея стартовых предметов, валюты в ХАД, кнопка «Шаг назад») */
-/* Изменение: в мобильном блоке верхней панели сетка переделана с auto 1fr auto на 1fr auto 1fr. Теперь левая и правая колонки строго равной ширины, средняя колонка (сердца) центрируется по панели без сдвига. Дополнительно добавлено min-width:0 для бейджа локации и для блока валют — чтобы их содержимое не растягивало колонки */
+/* Изменение: верхняя панель HUD переписана под новую разметку. Теперь это два независимых блока: #hud-top (первый ряд — бейдж локации и «История» слева, валюты справа) и #hud-bottom (второй ряд — «Шаг назад» слева, сердца по центру, «Настройки» справа). Старые классы .hud-l, .hud-c, .hud-r, .hudnav удалены. Мобильная раскладка обновлена под новую структуру */
 :root{--wood:#5b422a;--wood2:#7a5a38;--parch:#f0e2c4;--ink:#2f2417;--gold:#e8c76a}
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{height:100%}
@@ -12,11 +12,44 @@ body{font-family:Georgia,'Times New Roman',serif;background:#0c110b;color:#efe6d
 @keyframes bgfade{from{opacity:0}to{opacity:1}}
 #vign{position:fixed;inset:0;z-index:0;pointer-events:none;background:radial-gradient(ellipse at center,transparent 55%,rgba(5,10,5,.55) 100%)}
 #app{position:relative;z-index:1;min-height:100vh;display:flex;flex-direction:column;align-items:center;gap:14px;padding:10px 12px 30px;max-width:900px;margin:0 auto}
-#hud{width:100%;display:grid;grid-template-columns:1fr auto 1fr;gap:8px;align-items:center;background:rgba(15,22,13,.66);border:2px solid rgba(122,90,56,.65);border-radius:12px;padding:8px 12px}
-.hud-l{justify-self:start;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
-.hud-c{justify-self:center;display:flex;align-items:center}
-.hud-r{justify-self:end;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
-.hudnav{display:flex;align-items:center;gap:8px}
+
+/* ===== Верхняя панель, первый ряд =====
+   Бейдж локации и кнопка «История» — слева, валюты — справа.
+   Бейдж растягивается на всё свободное место (flex:1), поэтому
+   длинные названия локаций видны целиком. */
+#hud-top{
+  width:100%;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:8px;
+  background:rgba(15,22,13,.66);
+  border:2px solid rgba(122,90,56,.65);
+  border-radius:12px;
+  padding:8px 12px;
+}
+.hud-t-left{display:flex;align-items:center;gap:8px;flex:1;min-width:0}
+.hud-t-right{display:flex;align-items:center;gap:8px;flex:0 0 auto}
+
+/* ===== Верхняя панель, второй ряд =====
+   Слева «Шаг назад», по центру сердца, справа «Настройки».
+   Сетка 1fr auto 1fr — левая и правая колонки равной ширины,
+   поэтому сердца всегда точно по центру панели. */
+#hud-bottom{
+  width:100%;
+  display:grid;
+  grid-template-columns:1fr auto 1fr;
+  align-items:center;
+  gap:8px;
+  background:rgba(15,22,13,.66);
+  border:2px solid rgba(122,90,56,.65);
+  border-radius:12px;
+  padding:8px 12px;
+}
+.hud-b-left{justify-self:start;display:flex;align-items:center;gap:8px}
+.hud-b-center{justify-self:center;display:flex;align-items:center}
+.hud-b-right{justify-self:end;display:flex;align-items:center;gap:8px}
+
 .heart{font-size:33px;color:#4a3b2a;text-shadow:0 1px 2px #000;transition:.3s;margin:0 7px}
 .heart.on{color:#e2453b}
 .badge{
@@ -35,6 +68,10 @@ body{font-family:Georgia,'Times New Roman',serif;background:#0c110b;color:#efe6d
   text-align:center;
   cursor:pointer;
   white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  min-width:0;
+  flex:1;
 }
 .badge:hover{border-color:#b8d494}
 .gold{font-size:15px;color:var(--gold)}
@@ -44,7 +81,7 @@ body{font-family:Georgia,'Times New Roman',serif;background:#0c110b;color:#efe6d
 .gearbtn:hover{border-color:#b8d494}
 .gearbtn:active{transform:translateY(1px)}
 .gearbtn svg{display:block;filter:drop-shadow(0 1px 2px #000)}
-.histbtn{display:flex;flex-direction:row;align-items:center;justify-content:center;gap:8px;background:linear-gradient(#3c5432,#2c4023);border:1px solid var(--wood2);border-radius:10px;padding:4px 12px;color:#e9dfc5;cursor:pointer;font-family:inherit;line-height:1;text-align:center;min-height:46px;font-size:14px;letter-spacing:.5px}
+.histbtn{display:flex;flex-direction:row;align-items:center;justify-content:center;gap:8px;background:linear-gradient(#3c5432,#2c4023);border:1px solid var(--wood2);border-radius:10px;padding:4px 12px;color:#e9dfc5;cursor:pointer;font-family:inherit;line-height:1;text-align:center;min-height:46px;font-size:14px;letter-spacing:.5px;flex:0 0 auto}
 .histbtn svg{display:block;flex-shrink:0;filter:drop-shadow(0 1px 2px #000)}
 .histbtn .pl1{display:none}
 .histbtn:hover{border-color:#b8d494}
@@ -299,56 +336,38 @@ body{font-family:Georgia,'Times New Roman',serif;background:#0c110b;color:#efe6d
 #adcoinov,#goldov,#markov{z-index:46}
 
 /* ===== Мобильная раскладка верхней панели =====
-   ⚠️ На узких экранах HUD разбивается на два ряда.
-   Ряд 1: бейдж локации, кнопка «История», валюты.
-   Ряд 2: кнопка «Шаг назад», сердца, кнопка «Настройки».
-   Достигается через display:contents на всех группах HUD
-   (.hud-l, .hud-c, .hud-r, .hudnav) — все шесть элементов
-   становятся прямыми участниками сетки #hud и раскладываются
-   по явно заданным областям grid-template-areas.
-   ⚠️ Сетка 1fr auto 1fr — левая и правая колонки строго
-   равной ширины, поэтому средняя колонка (сердца) всегда
-   центрируется по панели, независимо от ширины бейджа
-   локации и ширины блока валют. */
+   Оба ряда (верхний #hud-top и нижний #hud-bottom) сжимаются:
+   уменьшаются внутренние отступы, шрифты, размеры кнопок.
+   Структурно раскладка та же, что и на десктопе. */
 @media(max-width:640px){
-  #hud{
-    grid-template-columns:1fr auto 1fr;
-    grid-template-areas:
-      "stat hist coins"
-      "back heart set";
-    gap:6px 8px;
+  #hud-top{
+    gap:6px;
     padding:8px 10px;
     font-size:13px;
-    align-items:center;
   }
-  .hud-l,.hud-c,.hud-r,.hudnav{display:contents}
+  #hud-top .hud-t-left{gap:6px}
+  #hud-top .hud-t-right{gap:6px}
+
+  #hud-bottom{
+    gap:6px;
+    padding:8px 10px;
+    font-size:13px;
+  }
 
   #statb{
-    grid-area:stat;
-    justify-self:start;
-    min-width:0;
-    overflow:hidden;
-    text-overflow:ellipsis;
-    white-space:nowrap;
     font-size:11px;
     padding:4px 8px;
+    min-height:42px;
   }
   #histb{
-    grid-area:hist;
-    justify-self:center;
     padding:4px 6px;
     min-height:42px;
   }
   #backb{
-    grid-area:back;
-    justify-self:start;
     min-height:42px;
     min-width:42px;
   }
   #hudcoins{
-    grid-area:coins;
-    justify-self:end;
-    min-width:0;
     padding:3px 6px;
     min-height:42px;
     gap:4px;
@@ -356,28 +375,19 @@ body{font-family:Georgia,'Times New Roman',serif;background:#0c110b;color:#efe6d
   #hudcoins .purse-n{font-size:12px}
   #hudcoins .pursewrap{padding:1px 2px}
   #setb{
-    grid-area:set;
-    justify-self:end;
     padding:2px;
     min-height:42px;
     min-width:42px;
   }
   #hearts{
-    grid-area:heart;
-    justify-self:center;
     display:flex;
     align-items:center;
     justify-content:center;
     padding:2px 0;
   }
-
   #setb svg{width:28px;height:28px}
 
   #panel .txt{font-size:15px}
-  /* На телефоне высота блока текста — те же шесть строк, но с учётом
-     меньшего шрифта. Формула остаётся 1.55em * 6, значение em меньше
-     из-за font-size:15px. Это гарантирует, что панель быстрого доступа
-     под текстом стоит на одном месте. */
   #ptxt{height:calc(1.55em * 6)}
   .card{width:clamp(104px,30vw,140px)}
   .heart{font-size:27px;margin:0 5px}
