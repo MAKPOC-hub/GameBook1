@@ -1,3 +1,9 @@
+// bg.js
+// v1.0.0 -> v1.0.1
+// Проект: GameBook1
+// Функция: SVG-фоны для всех локаций игры — титул, опушка, день, глубина, берёзы, деревня, луг, таверна, озеро, остров, болото, избушка травницы, дорога, мост, хижина, королевская дорога, поляна, замок, врата, смерть, победа
+// Изменение: восстановление после сбоя: дописана закрывающая скобка объекта BGS
+
 const wrap=(inner,c1,c2,c3)=>`<svg viewBox="0 0 800 500" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg"><defs><linearGradient id="sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${c1}"/><stop offset=".6" stop-color="${c2}"/><stop offset="1" stop-color="${c3}"/></linearGradient><linearGradient id="grd" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="rgba(0,0,0,0)"/><stop offset="1" stop-color="rgba(0,0,0,.28)"/></linearGradient><filter id="b1"><feGaussianBlur stdDeviation="3"/></filter><filter id="b2"><feGaussianBlur stdDeviation="7"/></filter><filter id="ns"><feTurbulence type="fractalNoise" baseFrequency=".9" numOctaves="2"/></filter></defs><rect width="800" height="500" fill="url(#sky)"/>${inner}<rect width="800" height="500" filter="url(#ns)" opacity=".05"/></svg>`;
 const E=(x,y,rx,ry,c,o=1,f='')=>`<ellipse cx="${x}" cy="${y}" rx="${rx}" ry="${ry}" fill="${c}" opacity="${o}" ${f}/>`;
 const pine=(x,y,s,c)=>`<g><rect x="${x-2.5*s}" y="${y-9*s}" width="${5*s}" height="${10*s}" fill="#4a3324"/><polygon points="${x},${y-46*s} ${x-15*s},${y-8*s} ${x+15*s},${y-8*s}" fill="${c}"/><polygon points="${x},${y-60*s} ${x-11*s},${y-26*s} ${x+11*s},${y-26*s}" fill="${c}"/></g>`;

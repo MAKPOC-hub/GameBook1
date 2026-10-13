@@ -1,14 +1,11 @@
 // itemcards_export.js
-// v1.0.0
+// v1.0.1 -> v1.0.2
 // Проект: GameBook1
-// Функция: сборка общего словаря артов предметов из шести файлов артов и экспорт его в window.ItemCards
-// Изменение: файл создан — выделен из itemcards.js (экспорт ItemCards)
+// Функция: сборка общего словаря артов предметов из семи файлов артов и экспорт его в window.ItemCards
+// Изменение: восстановление после сбоя: дописан закрывающий IIFE
 
 'use strict';
 
-/* ===== Сборка общего ART из шести файлов артов =====
-   ↗️ ART_ARTIFACTS, ART_WEAPONS, ART_FOOD, ART_TREASURES, ART_GEAR, ART_SCROLLS — в файлах itemcards_art_*.js
-   ↙️ Используется в: engine_render_inventory.js (мешок), engine_render_quickbar.js (быстрая панель), engine_render_start_item.js (галерея стартовых) */
 (function(){
 const ART = Object.assign({},
   window.ART_ARTIFACTS||{},
@@ -16,7 +13,8 @@ const ART = Object.assign({},
   window.ART_FOOD||{},
   window.ART_TREASURES||{},
   window.ART_GEAR||{},
-  window.ART_SCROLLS||{}
+  window.ART_SCROLLS||{},
+  window.ART_PUNCHES||{}
 );
 window.ItemCards={
   get:function(id){return ART[id]||null;},

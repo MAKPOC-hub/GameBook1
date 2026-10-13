@@ -1,8 +1,8 @@
 // engine_render_quickbar.js
-// v1.0.2 -> v1.0.3
+// v1.0.3 -> v1.0.4
 // Проект: GameBook1
 // Функция: панель быстрого доступа — слоты, покупка премиум-ячейки, открытие предмета по клику
-// Изменение: клик по предмету в ячейке теперь открывает окно описания предмета (openDetail), как это делается из мешка. Раньше клик применял предмет сразу, что было неинтуитивно. Игрок сам решает, что делать с предметом — применить, посмотреть описание, выбросить. Функция quickUseItem удалена за ненадобностью — её работу выполняет openDetail
+// Изменение: восстановление после сбоя: дописана закрывающая скобка функции doQuickUnlockSlot()
 
 'use strict';
 
@@ -10,6 +10,7 @@
    ↗️ ItemCards — в: itemcards.js
    ↗️ isReady, cdLeft — в: engine_state_cooldown.js
    ↗️ openDetail — в: engine_render_inventory.js
+   ↗️ openNotes — в: engine_notes.js
    ↙️ Вызывается из: engine_render_screen.js (render, renderCombat) */
 function renderQuickbar(){
   const box=$('#quickbar');
@@ -17,7 +18,7 @@ function renderQuickbar(){
   const inv=S.inv||[];
   const BASE=3, PREMIUM=5, COST=3;
   const owned=Math.min(PREMIUM, S.bagExt||0);
-  const cap=BASE+owned;
+  const cap=BASE+owned+(has('birch_notes')?1:0);
   const premiumLeft=PREMIUM-owned;
 
   const cells=[];
@@ -38,9 +39,7 @@ function renderQuickbar(){
   if(showArrows)h+='<div class="qs-arrow" data-dir="-1">‹</div>';
 
   /* ⚠️ Номер ячейки считается по её месту в общем списке (абсолютный индекс),
-     а не по позиции на экране. При сдвиге стрелками содержимое ячеек
-     переезжает, и номер переезжает вместе с ним — игрок видит, куда именно
-     уехал предмет. */
+     а не по позиции на экране. */
   for(let i=0;i<5;i++){
     let cell=null;
     let absIdx=i;
@@ -87,10 +86,17 @@ function renderQuickbar(){
   if(showArrows)h+='<div class="qs-arrow" data-dir="1">›</div>';
   box.innerHTML=h;
 
-  /* ⚠️ Клик по предмету открывает окно описания (как из мешка). Игрок сам
-     решает: применить, посмотреть, выбросить. */
+  /* ⚠️ Клик по предмету открывает окно описания (как из мешка). Для
+     берестяных заметок — сразу оверлей заметок. */
   box.querySelectorAll('.qs-slot[data-item]').forEach(function(el){
-    el.addEventListener('click',function(){openDetail(el.getAttribute('data-item'));});
+    el.addEventListener('click',function(){
+      const it=el.getAttribute('data-item');
+      if(it==='birch_notes'){
+        if(typeof window.openNotes==='function'){window.openNotes();}
+        return;
+      }
+      openDetail(it);
+    });
   });
   box.querySelectorAll('.qs-slot.premium').forEach(function(el){
     el.addEventListener('click',function(){quickUnlockSlot();});

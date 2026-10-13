@@ -1,8 +1,8 @@
 // settings.js
-// v2.1.19 -> v2.1.20
+// v2.1.21 -> v2.1.22
 // Проект: GameBook1
-// Функция: настройки игры + профиль + иконки валют + диалоги осколков, золота, знаков + реклама + автопрокрутка + начисление тайных символов + валюты в верхней панели
-// Изменение: из окна настроек убрана кнопка «Предметы». Она была нужна только для просмотра артов предметов во время разработки. Новому игроку ни к чему. Сама галерея (itemcards_gallery.js) остаётся в проекте и по-прежнему доступна через консоль браузера командой openItemGallery()
+// Функция: настройки игры + профиль + иконки валют + диалоги осколков, золота, знаков + реклама + автопрокрутка + начисление тайных символов + валюты в верхней панели + тайное меню
+// Изменение: в тайное меню добавлена третья кнопка «Ограничитель» — открывает галерею 50 указателей прокрутки текста
 
 (function(){
 const FZ=[1,1.15,1.3,1.5,1.7];
@@ -175,6 +175,7 @@ css.textContent=':root{--fz:1;--cz:1}'
 +'.sgroup .srow:last-child{margin-bottom:4px}'
 +'.settitle{display:flex;align-items:center;justify-content:center;gap:12px;font-variant:small-caps;letter-spacing:2px;color:#f0e2c4;font-size:18px;margin-bottom:10px;text-align:center}'
 +'.settitle svg{display:block;flex-shrink:0;filter:drop-shadow(0 2px 3px rgba(0,0,0,.5))}'
++'.setgear{cursor:pointer;user-select:none;-webkit-user-select:none}'
 +'@media(max-width:640px){#panel .txt{font-size:calc(15px*var(--fz))!important}.heart{font-size:calc(27px*var(--fz))!important}}';
 const DG='--cbg:'+GL+',repeating-linear-gradient(45deg,#2e4d27 0 9px,#38582e 9px 18px),#2e4d27;--cbr:#5b422a;--cb2:rgba(122,90,56,.75);--cdot:rgba(15,32,12,.5);--cglyph:"❧";--cglyc:rgba(232,199,106,.75);--cplaq:'+PLP+';--cplaqi:#2f2417;--cplaqb:#5b422a;--ctag:#d9ecb8';
 css.textContent+='body{'+DG+';--cgfs:14px;--cgtop:9px;--cgright:11px;--cgleft:auto;--cgtr:none}';
@@ -375,11 +376,62 @@ if(ov4.parentNode)document.body.removeChild(ov4);
 ov4.addEventListener('click',function(e){if(e.target===ov4&&ov4.parentNode)document.body.removeChild(ov4);});
 }
 
+/* ===== Тайное меню =====
+   Открывается секретным жестом: двойной клик по одной шестерёнке,
+   затем двойной клик по другой. Создаётся один раз при загрузке.
+   ↘️ «Предметы игры» вызывает window.openItemGallery — реализация
+   в itemcards_gallery.js. «Тесты» — заглушка. «Ограничитель» — вызывает
+   window.openPointerGallery, реализация в pointer_gallery.js. */
+let _secretOv=null;
+function _ensureSecretMenu(){
+  if(_secretOv)return _secretOv;
+  _secretOv=document.createElement('div');
+  _secretOv.className='ovl hidden';_secretOv.id='secretmenu';
+  _secretOv.innerHTML='<div class="invbox detbox" style="max-width:360px">'
+    +'<h3>Тайное меню</h3>'
+    +'<div class="adchint">Раздел для разработчика.</div>'
+    +'<div style="display:flex;flex-direction:column;gap:10px;margin-top:8px">'
+    +'<button class="btn" id="sm_items" style="min-width:200px">Предметы игры</button>'
+    +'<button class="btn" id="sm_tests" style="min-width:200px">Тесты</button>'
+    +'<button class="btn" id="sm_pointer" style="min-width:200px">Ограничитель</button>'
+    +'</div>'
+    +'<div style="text-align:center;margin-top:14px">'
+    +'<button class="btn" id="sm_close">Закрыть</button>'
+    +'</div>'
+    +'</div>';
+  document.body.appendChild(_secretOv);
+  _secretOv.addEventListener('click',function(e){if(e.target===_secretOv)_secretOv.classList.add('hidden');});
+  _secretOv.querySelector('#sm_close').addEventListener('click',function(){_secretOv.classList.add('hidden');});
+  _secretOv.querySelector('#sm_items').addEventListener('click',function(){
+    _secretOv.classList.add('hidden');
+    if(typeof window.openItemGallery==='function'){
+      window.openItemGallery();
+    }else{
+      toast('Галерея предметов недоступна');
+    }
+  });
+  _secretOv.querySelector('#sm_tests').addEventListener('click',function(){
+    toast('Раздел в разработке');
+  });
+  _secretOv.querySelector('#sm_pointer').addEventListener('click',function(){
+    _secretOv.classList.add('hidden');
+    if(typeof window.openPointerGallery==='function'){
+      window.openPointerGallery();
+    }else{
+      toast('Галерея указателей недоступна');
+    }
+  });
+  return _secretOv;
+}
+
 /* ===== Окно настроек =====
-   Кнопка «Предметы» убрана — она была нужна только во время разработки. */
+   Кнопка «Предметы» убрана — она была нужна только во время разработки.
+   Секретный жест — двойной клик по левой шестерёнке, затем двойной
+   клик по правой (или наоборот). Флаги сбрасываются при каждом
+   открытии окна настроек. */
 const ov=document.createElement('div');
 ov.className='ovl hidden';ov.id='set';
-ov.innerHTML='<div class="invbox"><div class="settitle">'+headerGearSVG(26)+'<span>Настройки</span>'+headerGearSVG(26)+'</div>'
+ov.innerHTML='<div class="invbox"><div class="settitle"><span class="setgear" id="setgear_l">'+headerGearSVG(26)+'</span><span>Настройки</span><span class="setgear" id="setgear_r">'+headerGearSVG(26)+'</span></div>'
 +'<div class="srow"><b>Рубашка карт</b>'
 +'<div class="sbtns"><button class="btn" id="skopenbtn">Рубашки карт</button></div></div>'
 +'<div class="srow"><b>Размер шрифта</b><div class="sbtns" id="sfbox"></div></div>'
@@ -451,7 +503,41 @@ const sv=ov.querySelector('#step_val');
 if(sv)sv.textContent=st.step.toString();
 }
 
-document.getElementById('setb').addEventListener('click',function(){build();ov.classList.remove('hidden');});
+/* ===== Флаги для секретного жеста =====
+   Сбрасываются при каждом открытии окна настроек. */
+let _gearLeftDouble=false;
+let _gearRightDouble=false;
+
+function _tryOpenSecret(){
+  if(_gearLeftDouble&&_gearRightDouble){
+    _gearLeftDouble=false;
+    _gearRightDouble=false;
+    const sm=_ensureSecretMenu();
+    sm.classList.remove('hidden');
+  }
+}
+
+const _gearL=ov.querySelector('#setgear_l');
+const _gearR=ov.querySelector('#setgear_r');
+if(_gearL){
+  _gearL.addEventListener('dblclick',function(){
+    _gearLeftDouble=true;
+    _tryOpenSecret();
+  });
+}
+if(_gearR){
+  _gearR.addEventListener('dblclick',function(){
+    _gearRightDouble=true;
+    _tryOpenSecret();
+  });
+}
+
+document.getElementById('setb').addEventListener('click',function(){
+  _gearLeftDouble=false;
+  _gearRightDouble=false;
+  build();
+  ov.classList.remove('hidden');
+});
 ov.querySelector('#setc').addEventListener('click',function(){ov.classList.add('hidden');});
 ov.addEventListener('click',function(e){if(e.target===ov)ov.classList.add('hidden');});
 ov.querySelector('#skopenbtn').addEventListener('click',function(){

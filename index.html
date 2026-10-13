@@ -1,8 +1,8 @@
 <!-- index.html -->
-<!-- v2.6.11 -> v2.6.12 -->
+<!-- v2.6.15 -->
 <!-- Проект: GameBook1 -->
 <!-- Функция: разметка игры и подключение файлов -->
-<!-- Изменение: значок кнопки «Шаг назад» уменьшен до среднего размера — 32×32 вместо прежних 24 и текущих 42. Кнопка остаётся 46×46, как у «Истории». Значок стал крупнее изначального, но не выходит за пределы кнопки -->
+<!-- Изменение: подключён новый файл pointer_gallery.js перед settings.js -->
 
 <!DOCTYPE html>
 <html lang="ru">
@@ -96,6 +96,9 @@
 <script src="engine_state_hud.js"></script>
 <script src="engine_state_dialogs.js"></script>
 
+<!-- Берестяные заметки — система записей игрока -->
+<script src="engine_notes.js"></script>
+
 <!-- Чекпоинты -->
 <script src="engine_checkpoints_data.js"></script>
 <script src="engine_checkpoints_logic.js"></script>
@@ -124,6 +127,7 @@
 <script src="itemcards_art_treasures.js"></script>
 <script src="itemcards_art_gear.js"></script>
 <script src="itemcards_art_scrolls.js"></script>
+<script src="itemcards_art_punches.js"></script>
 <script src="itemcards_export.js"></script>
 <script src="itemcards_gallery.js"></script>
 
@@ -133,6 +137,9 @@
 
 <!-- Галерея вариантов иконки «Шаг назад» (не вызывается из интерфейса, оставлена на будущее) -->
 <script src="backicons_gallery.js"></script>
+
+<!-- Галерея вариантов указателей прокрутки текста (открывается из тайного меню) -->
+<script src="pointer_gallery.js"></script>
 
 <!-- Сюжет главы 1 -->
 <script src="story_ch1_1.js"></script>

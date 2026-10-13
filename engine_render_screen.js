@@ -1,8 +1,8 @@
 // engine_render_screen.js
-// v1.0.20 -> v1.0.21
+// v1.0.24 -> v1.0.25
 // Проект: GameBook1
 // Функция: главный экран и экран боя — отрисовка текущего узла или текущего боя, автопрокрутка текста
-// Изменение: убраны все отладочные сообщения в консоли (console.log) — строки вида [autoscroll]... и [step].... Для публикации на Яндекс.Играх чистый релиз без отладки
+// Изменение: в attachTxtScroll функция setHint теперь не только управляет классами on/end, но и подменяет внутренний SVG указателя. Когда нужно показать стрелку — вставляется CHEV_UP/CHEV_DOWN; когда нужно показать чёрточку — LINE_TOP/LINE_BOTTOM. Атрибут data-kind хранит текущий вид ('chev' или 'line') и не даёт подменять SVG повторно, чтобы не сбрасывать CSS-анимацию
 
 'use strict';
 
@@ -21,7 +21,9 @@ let _autoPauseTimer=null;
   +'.autoscroll-btn:hover{background:rgba(40,52,30,.95);color:#fff3cf;border-color:#b8d494}'
   +'.autoscroll-btn.off{color:#6a6a5a;background:rgba(20,28,16,.55);border-color:#4a4a3a}'
   +'.autoscroll-btn.off:hover{color:#a8a89a;border-color:#6a6a5a}'
-  +'.autoscroll-btn svg{display:block}';
+  +'.autoscroll-btn svg{display:block}'
+  /* Стиль для центрирования короткого текста по вертикали */
+  +'.ptxt-inner{min-height:100%;box-sizing:border-box;display:flex;flex-direction:column;justify-content:center}';
   document.head.appendChild(st);
 })();
 
@@ -106,6 +108,18 @@ function _stepPauseMs(auto){
   return ms;
 }
 
+/* ===== Привязка прокрутки к тексту узла =====
+   ⚠️ Указатели прокрутки имеют два вида: стрелка (шеврон) и чёрточка.
+   Стрелка — значит есть скрытый текст в эту сторону. Чёрточка — значит
+   мы в начале (верхний указатель) или в конце (нижний) текста.
+   Функция setHint управляет и классом (on/end), и содержимым блока:
+   подменяет внутренний SVG на нужный, но только если вид изменился.
+   Атрибут data-kind хранит текущий вид: 'chev' или 'line'.
+   ⚠️ Если текст короткий и умещается целиком — обеим стрелкам вешается
+   вид «чёрточка» и класс end. Обе чёрточки видны — как обрамление блока.
+   Клик по указателям не работает: они не кликабельны.
+   ↗️ CHEV_UP, CHEV_DOWN, LINE_TOP, LINE_BOTTOM — в: engine_render_helpers.js
+   ↙️ Вызывается из: render (в этом же файле) */
 function attachTxtScroll(){
   const ptxt=document.getElementById('ptxt');
   if(!ptxt)return;
@@ -118,24 +132,49 @@ function attachTxtScroll(){
   _autoRunning=false;
   _autoAccum=0;
 
+  /* Управление указателем: класс on/end + подмена SVG на стрелку или чёрточку.
+     Внутренний вид хранится в data-kind ('chev' или 'line'), чтобы не перерисовывать
+     SVG без нужды — иначе CSS-анимация перезапускается при каждом скролле. */
+  function setHint(el,svgHTML,kind){
+    el.classList.remove('on');
+    el.classList.remove('end');
+    el.classList.add(kind==='chev'?'on':'end');
+    if(el.getAttribute('data-kind')!==kind){
+      el.innerHTML=svgHTML;
+      el.setAttribute('data-kind',kind);
+    }
+  }
+
   function update(){
     const st=ptxt.scrollTop;
     const ch=ptxt.clientHeight;
     const sh=ptxt.scrollHeight;
-    hintTop.classList.toggle('on', st>4);
-    hintBot.classList.toggle('on', st+ch < sh-4);
+    const hasScroll=sh > ch+4;
+    if(!hasScroll){
+      /* Короткий текст — обе чёрточки. */
+      setHint(hintTop,LINE_TOP,'line');
+      setHint(hintBot,LINE_BOTTOM,'line');
+      return;
+    }
+    /* Верхний: если прокручен вниз — есть что показать наверху (стрелка),
+       иначе — начало текста (чёрточка). */
+    if(st>4){
+      setHint(hintTop,CHEV_UP,'chev');
+    }else{
+      setHint(hintTop,LINE_TOP,'line');
+    }
+    /* Нижний: если низ не достигнут — есть текст снизу (стрелка),
+       иначе — дочитано до конца (чёрточка). */
+    if(st+ch < sh-4){
+      setHint(hintBot,CHEV_DOWN,'chev');
+    }else{
+      setHint(hintBot,LINE_BOTTOM,'line');
+    }
   }
+
   ptxt.addEventListener('scroll',update,{passive:true});
-  hintTop.addEventListener('click',function(){
-    _stopAuto();
-    ptxt.scrollBy({top:-Math.round(ptxt.clientHeight*0.8),behavior:'smooth'});
-  });
-  hintBot.addEventListener('click',function(){
-    _stopAuto();
-    ptxt.scrollBy({top:Math.round(ptxt.clientHeight*0.8),behavior:'smooth'});
-  });
   ptxt.scrollTop=0;
-  requestAnimationFrame(update);
+  update();
   window.addEventListener('resize',update);
 
   const hasScroll=ptxt.scrollHeight > ptxt.clientHeight+4;
@@ -266,7 +305,11 @@ function attachTxtScroll(){
   });
 }
 
-/* ===== Главный экран ===== */
+/* ===== Главный экран =====
+   ⚠️ Содержимое #ptxt обёрнуто в .ptxt-inner — это нужно, чтобы
+   короткий текст центрировался по вертикали внутри фиксированной
+   высоты. При длинном тексте обёртка растягивается, и скролл
+   работает как обычно. */
 function render(){
   if(!S)return;
   hud();
@@ -277,9 +320,9 @@ function render(){
   const t=(typeof n.t==='function')?n.t(S):n.t;
   $('#panel').innerHTML='<div class="para">§'+S.node+'</div>'
     +'<div class="txt"><div class="txtscroll">'
-    +'<div class="scrollhint top" id="scrollhint_top" title="Прокрутить вверх">'+CHEV_UP+'</div>'
-    +'<div id="ptxt">'+t.replace(/\n\n/g,'<br>')+'</div>'
-    +'<div class="scrollhint bottom" id="scrollhint_bottom" title="Прокрутить вниз">'+CHEV_DOWN+'</div>'
+    +'<div class="scrollhint top" id="scrollhint_top"></div>'
+    +'<div id="ptxt"><div class="ptxt-inner">'+t.replace(/\n\n/g,'<br>')+'</div></div>'
+    +'<div class="scrollhint bottom" id="scrollhint_bottom"></div>'
     +'</div></div>';
   attachTxtScroll();
   let cs=(typeof n.c==='function')?n.c(S):(n.c||[]);

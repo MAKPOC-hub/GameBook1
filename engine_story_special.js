@@ -1,8 +1,8 @@
 // engine_story_special.js
-// v1.1.14 (текущая)
+// v1.1.19 -> v1.1.20
 // Проект: GameBook1
 // Функция: специальные сцены и обработка выбора карты — отдых, сон, урон, рестарт, конец главы, возврат к чекпоинту, бросок стартового предмета, галерея стартовых, покупка, финализация карты, главный обработчик выбора
-// Изменение: результат броска кубика теперь сохраняется в состояние игры до начала анимации кубика. Если игрок обновит страницу между броском и нажатием «Далее», окно с тем же числом и теми же последствиями покажется снова — повторного броска не будет. То же касается стартового предмета
+// Изменение: восстановление после сбоя: дописана закрывающая скобка функции play()
 
 'use strict';
 
@@ -52,6 +52,63 @@ function showStartItemReceivedWindow(){
   });
 }
 
+/* ===== Обмен свистка на два свитка =====
+   У торговца в деревне (глава 3, узел 413). Свисток исчезает из мешка,
+   в мешок кладутся два свитка — «Исцеление» и «Огненный шар». Если
+   свободных слотов нет — открывается окно выбора: взять первый свиток,
+   второй, или оба (потребовав освободить место). */
+function _tradeWhistleForScrolls(){
+  if(!has('silver_whistle')){toast('Нет свистка');return;}
+  /* Удаляем свисток. */
+  S.inv.splice(S.inv.indexOf('silver_whistle'),1);
+  const newItems=['scroll_heal','scroll_fire'];
+  const free=invMax()-S.inv.length;
+  /* Мест хватает — кладём оба. */
+  if(free>=2){
+    newItems.forEach(function(id){S.inv.push(id);});
+    save();
+    if(typeof window.showItemsReceived==='function'){
+      window.showItemsReceived(newItems,0,function(){
+        render();
+      });
+    }else{
+      toast('Получено: Свиток «Исцеление» и Свиток «Огненный шар»');
+      render();
+    }
+    return;
+  }
+  /* Места не хватает — показываем окно выбора. */
+  if(typeof window.showPickupResult==='function'){
+    window.showPickupResult(
+      newItems,
+      Math.max(0,free),
+      function(){render();},
+      function(){
+        const got=[];
+        for(let i=0;i<newItems.length;i++){
+          if(S.inv.length<invMax()){
+            S.inv.push(newItems[i]);
+            got.push(newItems[i]);
+          }
+        }
+        save();
+        if(typeof window.showItemsReceived==='function'&&got.length>0){
+          window.showItemsReceived(got,0,function(){render();});
+        }else{
+          render();
+        }
+      }
+    );
+    return;
+  }
+  /* Страховка. */
+  for(let i=0;i<newItems.length;i++){
+    if(S.inv.length<invMax())S.inv.push(newItems[i]);
+  }
+  save();
+  render();
+}
+
 function doSpecial(c){
   if(!c||!c.special)return false;
 
@@ -96,11 +153,88 @@ function doSpecial(c){
     return true;
   }
 
-  /* ===== Бросок стартового предмета =====
-     Результат броска (число, выбранный предмет) фиксируется в состоянии
-     ДО начала анимации кубика. Если игрок обновит страницу во время
-     анимации — окно с полученным предметом покажется сразу, без
-     повторного броска. */
+  /* ===== Обмен свистка =====
+     Игрок показывает торговцу серебряный свисток, тот даёт два свитка.
+     Свиток «Исцеление» восстанавливает 2 сердца вне боя, свиток
+     «Огненный шар» бьёт врага на 2 HP в бою. */
+  if(c.special==='tradeWhistle'){
+    _tradeWhistleForScrolls();
+    return true;
+  }
+
+  if(c.special==='takeLukerjaNote'){
+    if(typeof window.addNote==='function'){
+      window.addNote(
+        'parol_lukerja',
+        'Пароль от Лукерьи',
+        'Сказать охотнику с перевязанной ногой: «Я от Лукерьи».',
+        ''
+      );
+    }
+    return false;
+  }
+
+  if(c.special==='takeNumber37'){
+    let found=false;
+    if(S&&Array.isArray(S.notes)){
+      for(let i=0;i<S.notes.length;i++){
+        if(S.notes[i].id==='mystery_37'){
+          S.notes[i].id='number_37';
+          S.notes[i].title='Три и семь';
+          S.notes[i].text='Число. Где — не помню. Но помню, что важно.';
+          found=true;
+          break;
+        }
+      }
+    }
+    if(!found&&typeof window.addNote==='function'){
+      window.addNote(
+        'number_37',
+        'Три и семь',
+        'Число. Где — не помню. Но помню, что важно.',
+        ''
+      );
+    }
+    if(typeof save==='function')save();
+    return false;
+  }
+
+  if(c.special==='takeMirrorNote'){
+    if(typeof window.addNote==='function'){
+      window.addNote(
+        'sign_press_circle',
+        'Круг с точкой',
+        'Нажать.',
+        '<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><circle cx="50" cy="50" r="32" fill="none" stroke="#5a3a1a" stroke-width="4"/><circle cx="50" cy="50" r="5" fill="#5a3a1a"/></svg>'
+      );
+    }
+    return false;
+  }
+
+  if(c.special==='takeMirrorHint'){
+    if(typeof window.addNote==='function'){
+      window.addNote(
+        'hint_mirror',
+        'Слабость Жреца',
+        'Ордрик боится зеркал. Если показать ему его же лицо — замрёт на один ход.',
+        ''
+      );
+    }
+    return false;
+  }
+
+  if(c.special==='takeStrazhHint'){
+    if(typeof window.addNote==='function'){
+      window.addNote(
+        'hint_strazh',
+        'Тайна Стража',
+        'У Стража пусто в груди. Если вставить туда что-то большое и тёплое — он проснётся.',
+        ''
+      );
+    }
+    return false;
+  }
+
   if(c.special==='rollStartItem'){
     if(S.flags.startItemRolled){
       if(c.go){go(c.go);}
@@ -158,7 +292,6 @@ function _finalizeCard(c){
   }else{render();}
 }
 
-/* ===== Картинка предмета для окна результата ===== */
 function _itemIconHTML(itemId,width){
   if(!itemId)return '';
   const w=width||110;
@@ -170,12 +303,6 @@ function _itemIconHTML(itemId,width){
     +'</div></div>';
 }
 
-/* ===== Сохранить результат броска и запустить анимацию =====
-   Результат (число, исход, последствия, следующий узел) сохраняется
-   в состояние ДО начала анимации. Если игрок обновит страницу между
-   броском и нажатием «Далее» — окно результата покажется снова с тем
-   же числом, повторного броска не будет.
-   ↙️ Вызывается из: play (в этом же файле), внутри блоков проверок */
 function _prepareAndShowRoll(text,nextNode,outcome,diceValue){
   S.pendingRoll={
     text:text,
@@ -187,17 +314,11 @@ function _prepareAndShowRoll(text,nextNode,outcome,diceValue){
   save();
   showDie(diceValue,function(){
     busy=false;
-    /* Если игрок успел уйти в чекпоинт через меню истории —
-       не показываем окно поверх восстановленного состояния. */
     if(!S.pendingRoll)return;
     _showRollOutcome(text,nextNode,outcome,diceValue);
   },outcome);
 }
 
-/* ===== Показать окно результата броска и обработать «Далее» =====
-   Вызывается из _prepareAndShowRoll после анимации кубика, а также
-   при загрузке страницы из story_ch1_5.js, если в сохранении остался
-   незакрытый результат броска. */
 function _showRollOutcome(text,nextNode,outcome,diceValue){
   const proceed=function(){
     S.pendingRoll=null;
@@ -269,10 +390,6 @@ function play(c){
     else{toast('У вас нет: '+ITEMS[c.use].n);return;}
   }
 
-  /* ===== Проверка с предметом =====
-     После успешного броска предмет идёт в мешок. В окне результата броска
-     показывается картинка предмета и полное описание — чтобы игрок понял,
-     что взял. Это правило 10.10.5. */
   if(c.checkTake){
     const target=c.checkTake;
     const item=c.take;
@@ -315,7 +432,6 @@ function play(c){
     return;
   }
 
-  /* ===== Проверка с двумя исходами ===== */
   if(c.checkFail){
     const okNode=c.checkFail[0];
     const failNode=c.checkFail[1];
@@ -330,7 +446,6 @@ function play(c){
     return;
   }
 
-  /* ===== Проверка на еду и питьё ===== */
   if(c.checkFood){
     const flag=c.foodFlag;
     busy=true;
@@ -348,7 +463,6 @@ function play(c){
     return;
   }
 
-  /* ===== Проверка с двумя исходами и Компасом ===== */
   if(c.check){
     const winNode=c.check[0];
     const failNode=c.check[1];
@@ -375,16 +489,11 @@ function play(c){
     return;
   }
 
-  /* ===== Обычные находки в узле =====
-     Игрок сам выбрал взять предмет — значит, показываем окно showItemsReceived
-     с картинкой, названием и полным описанием каждого полученного предмета.
-     Это правило 10.10. */
   if(c.pick){
     const items=(c.pick.items||[]);
     const gold=c.pick.gold||0;
     const free=invMax()-S.inv.length;
     const totalNeed=items.length;
-    /* Случай 1: мест хватает на все предметы. */
     if(totalNeed<=free){
       if(gold){S.gold+=gold;}
       items.forEach(function(id){
@@ -400,7 +509,6 @@ function play(c){
       }
       return;
     }
-    /* Случай 2: мест не хватает — окно с выбором и покупкой ячейки. */
     if(typeof window.showPickupResult==='function'){
       window.showPickupResult(
         items,
@@ -427,7 +535,6 @@ function play(c){
       );
       return;
     }
-    /* Страховка. */
     if(gold){S.gold+=gold;}
     const got2=[];
     for(let i=0;i<items.length;i++){

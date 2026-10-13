@@ -1,8 +1,8 @@
 // engine_items_apply.js
-// v1.0.1 -> v1.0.2
+// v1.0.3 -> v1.0.4
 // Проект: GameBook1
-// Функция: применение предметов из мешка — особые предметы (амулет, подкова, бросок тени, вспышка, компас, лютня) и поедание еды
-// Изменение: в eatItem после еды вне боя вызывается render(), а не openInv(). Раньше открывалось окно мешка, чтобы игрок оставался в рюкзаке после еды. Теперь мешка в HUD нет — игрок видит обновлённый экран с быстрой панелью, где предмета уже нет
+// Функция: применение предметов из мешка — особые предметы, поедание еды, обработка предметов-обманок
+// Изменение: восстановление после сбоя: дописана закрывающая скобка функции eatItem()
 
 'use strict';
 
@@ -49,15 +49,32 @@ function applyItemFromBag(id){
   return false;
 }
 
+/* ===== Съесть или выпить предмет =====
+   Обычная еда восстанавливает сердца согласно таблице HEALS.
+   Предметы-обманки (у которых в ITEMS стоит bad:true) наоборот —
+   отнимают 1 сердце. Оба варианта удаляют предмет из мешка.
+   ↙️ Вызывается из: engine_render_inventory.js (openDetail — кнопка
+      «Съесть» или «Попробовать»), engine_render_quickbar.js (если
+      предмет применён напрямую) */
 function eatItem(it){
   if(!has(it)){toast('У вас нет этого');return;}
+  /* Обманка: сухарь из телеги, замёрзший кувшин и подобные. */
+  if(ITEMS[it]&&ITEMS[it].bad){
+    S.hp--;
+    S.inv.splice(S.inv.indexOf(it),1);
+    save();
+    const msg=ITEMS[it].badMsg||(ITEMS[it].n+' — плохо. −1 сердце.');
+    toast(msg);
+    const det=$('#det');if(det)det.classList.add('hidden');
+    if(typeof render==='function')render();
+    return;
+  }
+  /* Обычная еда. */
   if(S.hp>=S.maxhp){toast('Вы и так здоровы');return;}
   healHp(HEALS[it]);
   S.inv.splice(S.inv.indexOf(it),1);
   toast(ITEMS[it].n+' (+'+HEALS[it]+' сердце)');
   save();
   const det=$('#det');if(det)det.classList.add('hidden');
-  /* После еды просто перерисовываем экран: обновится быстрая панель,
-     из неё исчезнет съеденный предмет, обновятся сердца в HUD. */
   if(typeof render==='function')render();
 }
