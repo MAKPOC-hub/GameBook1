@@ -1,8 +1,8 @@
 /* style.css */
-/* v2.6.2 */
+/* v2.6.2 -> v2.6.3 */
 /* Проект: GameBook1 */
 /* Функция: оформление игры (ХАД, панель текста, карты, оверлеи, анимации, панель быстрого доступа, галерея стартовых предметов, валюты в ХАД, кнопка «Шаг назад») */
-/* Изменение: добавлен класс .scrollhint.end — тонкая горизонтальная черта без анимации. Когда текст в начале, сверху черта; когда текст дочитан до конца, снизу черта. Когда текста нет вообще (нет прокрутки), обе стрелки показываются как черты — как обрамление блока */
+/* Изменение: в мобильной раскладке (max-width:640px) верхняя панель теперь двухрядная. Первый ряд: бейдж локации, кнопка «История», валюты. Второй ряд: кнопка «Шаг назад», сердца, кнопка «Настройки». Раскладка сделана через display:contents на блоке кнопок, чтобы обе кнопки (История и Шаг назад) стали прямыми участниками сетки и разошлись по разным рядам */
 :root{--wood:#5b422a;--wood2:#7a5a38;--parch:#f0e2c4;--ink:#2f2417;--gold:#e8c76a}
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{height:100%}
@@ -298,27 +298,74 @@ body{font-family:Georgia,'Times New Roman',serif;background:#0c110b;color:#efe6d
 #cpchoice{z-index:49}
 #adcoinov,#goldov,#markov{z-index:46}
 
+/* ===== Мобильная раскладка верхней панели =====
+   ⚠️ На узких экранах HUD разбивается на два ряда.
+   Ряд 1: бейдж локации, кнопка «История», валюты.
+   Ряд 2: кнопка «Шаг назад», сердца, кнопка «Настройки».
+   Достигается через display:contents на всех группах HUD
+   (.hud-l, .hud-c, .hud-r, .hudnav) — все шесть элементов
+   становятся прямыми участниками сетки #hud и раскладываются
+   по явно заданным областям grid-template-areas. */
 @media(max-width:640px){
   #hud{
-    grid-template-columns:auto auto 1fr auto;
+    grid-template-columns:auto 1fr auto;
     grid-template-areas:
-      "stat hist coins set"
-      "heart heart heart heart";
-    gap:6px;
+      "stat hist coins"
+      "back heart set";
+    gap:6px 8px;
     padding:8px 10px;
     font-size:13px;
+    align-items:center;
   }
-  .hud-l,.hud-c,.hud-r{display:contents}
-  #statb{grid-area:stat;justify-self:start;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:11px;padding:4px 8px}
-  .hudnav{grid-area:hist;justify-self:start;display:flex;gap:4px}
-  .hudnav .histbtn{padding:4px 6px;min-height:42px}
-  #hudcoins{grid-area:coins;justify-self:end;padding:3px 6px;min-height:42px;gap:4px}
+  .hud-l,.hud-c,.hud-r,.hudnav{display:contents}
+
+  #statb{
+    grid-area:stat;
+    justify-self:start;
+    min-width:0;
+    overflow:hidden;
+    text-overflow:ellipsis;
+    white-space:nowrap;
+    font-size:11px;
+    padding:4px 8px;
+  }
+  #histb{
+    grid-area:hist;
+    justify-self:start;
+    padding:4px 6px;
+    min-height:42px;
+  }
+  #backb{
+    grid-area:back;
+    justify-self:start;
+    min-height:42px;
+    min-width:42px;
+  }
+  #hudcoins{
+    grid-area:coins;
+    justify-self:end;
+    padding:3px 6px;
+    min-height:42px;
+    gap:4px;
+  }
   #hudcoins .purse-n{font-size:12px}
   #hudcoins .pursewrap{padding:1px 2px}
-  #setb{grid-area:set;justify-self:end;padding:2px;min-height:42px;min-width:42px}
-  #hearts{grid-area:heart;justify-self:center;display:flex;align-items:center;justify-content:center;padding:2px 0}
+  #setb{
+    grid-area:set;
+    justify-self:end;
+    padding:2px;
+    min-height:42px;
+    min-width:42px;
+  }
+  #hearts{
+    grid-area:heart;
+    justify-self:center;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    padding:2px 0;
+  }
 
-  .hudnav .histbtn .pl1{display:none}
   #setb svg{width:28px;height:28px}
 
   #panel .txt{font-size:15px}
