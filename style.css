@@ -1,8 +1,8 @@
 /* style.css */
-/* v2.6.2 -> v2.6.3 */
+/* v2.6.3 -> v2.6.4 */
 /* Проект: GameBook1 */
 /* Функция: оформление игры (ХАД, панель текста, карты, оверлеи, анимации, панель быстрого доступа, галерея стартовых предметов, валюты в ХАД, кнопка «Шаг назад») */
-/* Изменение: в мобильной раскладке (max-width:640px) верхняя панель теперь двухрядная. Первый ряд: бейдж локации, кнопка «История», валюты. Второй ряд: кнопка «Шаг назад», сердца, кнопка «Настройки». Раскладка сделана через display:contents на блоке кнопок, чтобы обе кнопки (История и Шаг назад) стали прямыми участниками сетки и разошлись по разным рядам */
+/* Изменение: в мобильном блоке верхней панели сетка переделана с auto 1fr auto на 1fr auto 1fr. Теперь левая и правая колонки строго равной ширины, средняя колонка (сердца) центрируется по панели без сдвига. Дополнительно добавлено min-width:0 для бейджа локации и для блока валют — чтобы их содержимое не растягивало колонки */
 :root{--wood:#5b422a;--wood2:#7a5a38;--parch:#f0e2c4;--ink:#2f2417;--gold:#e8c76a}
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{height:100%}
@@ -305,10 +305,14 @@ body{font-family:Georgia,'Times New Roman',serif;background:#0c110b;color:#efe6d
    Достигается через display:contents на всех группах HUD
    (.hud-l, .hud-c, .hud-r, .hudnav) — все шесть элементов
    становятся прямыми участниками сетки #hud и раскладываются
-   по явно заданным областям grid-template-areas. */
+   по явно заданным областям grid-template-areas.
+   ⚠️ Сетка 1fr auto 1fr — левая и правая колонки строго
+   равной ширины, поэтому средняя колонка (сердца) всегда
+   центрируется по панели, независимо от ширины бейджа
+   локации и ширины блока валют. */
 @media(max-width:640px){
   #hud{
-    grid-template-columns:auto 1fr auto;
+    grid-template-columns:1fr auto 1fr;
     grid-template-areas:
       "stat hist coins"
       "back heart set";
@@ -331,7 +335,7 @@ body{font-family:Georgia,'Times New Roman',serif;background:#0c110b;color:#efe6d
   }
   #histb{
     grid-area:hist;
-    justify-self:start;
+    justify-self:center;
     padding:4px 6px;
     min-height:42px;
   }
@@ -344,6 +348,7 @@ body{font-family:Georgia,'Times New Roman',serif;background:#0c110b;color:#efe6d
   #hudcoins{
     grid-area:coins;
     justify-self:end;
+    min-width:0;
     padding:3px 6px;
     min-height:42px;
     gap:4px;
