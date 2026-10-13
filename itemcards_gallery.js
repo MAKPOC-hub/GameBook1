@@ -1,25 +1,24 @@
 // itemcards_gallery.js
-// v1.0.0 -> v1.0.1
+// v1.0.4 -> v1.0.5
 // Проект: GameBook1
-// Функция: галерея предметов — открытие оверлея и построение сетки по секциям (стартовые артефакты, оружие, еда, снаряжение, свитки)
-// Изменение: удалена секция «Сокровища» — единственный предмет в ней (кольцо) убран из игры
+// Функция: галерея предметов — открытие оверлея и построение сетки по секциям
+// Изменение: добавлена секция «Предтечи». В неё вошли пять перфокарт, рыжий уголь и ядро Предтеч. Замёрзший кувшин добавлен в «Еду и зелья» — он относится к предметам, которые можно съесть
 
 'use strict';
 
 /* ===== Секции галереи предметов =====
    ↙️ Используется в: openItemGallery (в этом же файле) */
 const SECTIONS=[
-  {n:'Классовые артефакты',ids:['vigor_amulet','vory_knife','flash','compass','lute','horseshoe']},
+  {n:'Классовые артефакты',ids:['vigor_amulet','vory_knife','flash','compass','lute','horseshoe','mirror']},
   {n:'Оружие и доспехи',ids:['sword','ksword','armor']},
-  {n:'Еда и зелья',ids:['bread','loaf','sukhar','jerky','berries','potion']},
-  {n:'Снаряжение',ids:['flint','candle','rope']},
-  {n:'Свитки',ids:['scroll_fire','scroll_heal']}
+  {n:'Еда и зелья',ids:['bread','loaf','sukhar','jerky','berries','potion','frozen_jug']},
+  {n:'Снаряжение',ids:['flint','candle','rope','birch_notes']},
+  {n:'Свитки',ids:['scroll_fire','scroll_heal']},
+  {n:'Сокровища',ids:['silver_whistle']},
+  {n:'Предтечи',ids:['punch_fire','punch_ice','punch_anvil','punch_drops','punch_dust','coal','core']}
 ];
 
-/* ===== Открытие галереи предметов =====
-   ↗️ ITEMS — в: engine_data_items.js
-   ↗️ ItemCards — в: itemcards_export.js
-   ↙️ Вызывается из: settings.js (кнопка «Предметы») через window.openItemGallery */
+/* ===== Открытие галереи предметов ===== */
 function openItemGallery(){
   let ov=document.getElementById('itemgallery');
   if(!ov){

@@ -1,29 +1,20 @@
 // engine_render_inventory.js
-// v1.0.3 -> v1.0.4
+// v1.0.5 -> v1.0.6
 // Проект: GameBook1
 // Функция: просмотр предмета и открытие мешка
-// Изменение: кнопка «Выкинуть» в окне описания предмета теперь вызывает подтверждение confirmAction. Игрок видит предупреждение «Выкинуть предмет?» с названием предмета и кнопками «Да, выкинуть» (красная) и «Отмена» (зелёная). Это защищает от случайного нажатия. Само удаление происходит только после подтверждения
+// Изменение: восстановление после сбоя: дописана функция closeInv()
 
 'use strict';
 
-/* ===== Картинка кошелька =====
-   ↙️ Используется в: openInv (в этом же файле) */
+/* ===== Картинка кошелька ===== */
 const PURSE_SVG='<svg viewBox="0 0 40 48" width="38" height="46" aria-hidden="true"><defs><linearGradient id="bagGrad" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#a0764a"/><stop offset=".5" stop-color="#7a5230"/><stop offset="1" stop-color="#4a2e18"/></linearGradient><radialGradient id="coinGrad" cx=".35" cy=".35"><stop offset="0" stop-color="#ffe9a0"/><stop offset=".7" stop-color="#d9a636"/><stop offset="1" stop-color="#8a611a"/></radialGradient></defs><path d="M10 18 Q5 28 8 38 Q20 46 32 38 Q35 28 30 18 Z" fill="url(#bagGrad)" stroke="#3a2410" stroke-width="1.5"/><ellipse cx="20" cy="18" rx="10" ry="3" fill="#5a3a1e" stroke="#3a2410" stroke-width="1"/><path d="M12 16 Q20 10 28 16" fill="none" stroke="#c9a24a" stroke-width="1.5"/><path d="M20 10 L20 4" stroke="#c9a24a" stroke-width="1.5"/><circle cx="20" cy="4" r="2" fill="#c9a24a"/></svg>';
 
-/* ===== Мешок =====
-   ⚠️ Окно мешка открывается только программно — при переполнении из
-   диалогов «Мешок полон» или из вспомогательных сценариев. Кнопки мешка
-   в верхней панели больше нет.
-   ↗️ ItemCards — в: itemcards.js
-   ↗️ openDetail — в этом же файле
-   ↗️ isReady, cdLeft — в: engine_state_cooldown.js
-   ↙️ Вызывается из: engine_items_apply.js (eatItem), engine_state_dialogs.js
-      (showBagFullDialog), engine_checkpoints_logic.js (обёртка go — ветка autoGet) */
+/* ===== Мешок ===== */
 function openInv(){
   const box=$('#invbox');
   const BASE=3, PREMIUM=5, COST=3;
   const owned=Math.min(PREMIUM, S.bagExt||0);
-  const cap=BASE+owned;
+  const cap=BASE+owned+(has('birch_notes')?1:0);
   const premiumLeft=PREMIUM-owned;
   let h='<div class="invhead"><span class="invh-bag">Мешок '+S.inv.length+'/'+cap+'</span><span class="pursewrap">'+PURSE_SVG+'<b class="purse-n">'+S.gold+'</b></span></div>';
   h+='<div style="display:flex;flex-wrap:wrap;justify-content:center;gap:10px;margin-top:6px">';
@@ -95,18 +86,15 @@ function doUnlockSlot(COST){
 }
 
 /* ===== Просмотр предмета =====
-   Открывается кликом по предмету в панели быстрого доступа или по предмету
-   в окне мешка (которое теперь вызывается только программно).
-   ⚠️ Кнопка «Выкинуть» теперь вызывает подтверждение — чтобы не потерять
-   предмет случайным нажатием. Удаление происходит только после нажатия
-   «Да, выкинуть» в окне подтверждения.
-   ↗️ ItemCards — в: itemcards.js
-   ↗️ applyItemFromBag, eatItem — в: engine_items_apply.js
-   ↗️ resetCdForCoins — в: engine_state_cooldown.js
-   ↗️ fireScroll — в: engine_combat.js
-   ↗️ confirmAction — в: engine_state_dialogs.js
-   ↙️ Вызывается из: openInv (в этом же файле), renderQuickbar (engine_render_quickbar.js) */
+   ⚠️ Кнопка использования показывается для двух случаев:
+   1) обычная еда (HEALS[it]) — кнопка «Съесть (+N сердце)»;
+   2) обманка (ITEMS[it].bad) — кнопка «Попробовать».
+   Оба варианта вызывают eatItem — он сам разберётся. */
 function openDetail(it){
+  if(it==='birch_notes'){
+    if(typeof window.openNotes==='function'){window.openNotes();}
+    return;
+  }
   let det=$('#det');
   if(!det){
     det=document.createElement('div');det.className='ovl hidden';det.id='det';
@@ -131,9 +119,16 @@ function openDetail(it){
   let btns='';
   const ready=isReady(it);
   const cd=cdLeft(it);
-  const canHeal=!S.combat&&S.hp<S.maxhp&&HEALS[it];
-  if(HEALS[it]&&canHeal)btns+='<button class="btn" id="detuse">Съесть (+'+HEALS[it]+' '+ico('heart',14)+')</button>';
-  if(it==='scroll_heal'&&canHeal)btns+='<button class="btn" id="detuse">Сотворить (+2 '+ico('heart',14)+')</button>';
+  const noCombat=!S.combat;
+  /* Обычная еда. */
+  if(HEALS[it]&&noCombat&&S.hp<S.maxhp){
+    btns+='<button class="btn" id="detuse">Съесть (+'+HEALS[it]+' '+ico('heart',14)+')</button>';
+  }
+  /* Обманка — кнопка доступна всегда, даже при полном здоровье. */
+  if(ITEMS[it]&&ITEMS[it].bad&&noCombat){
+    btns+='<button class="btn" id="detuse">Попробовать</button>';
+  }
+  if(it==='scroll_heal'&&noCombat&&S.hp<S.maxhp)btns+='<button class="btn" id="detuse">Сотворить (+2 '+ico('heart',14)+')</button>';
   if(it==='scroll_fire'&&S.combat)btns+='<button class="btn" id="detfire">Огненный шар (враг −2 '+ico('heart',14)+')</button>';
   if(it==='compass'||it==='flash'||it==='lute'||it==='vory_knife'){
     if(!ready){
@@ -169,7 +164,6 @@ function openDetail(it){
   if(rs)rs.addEventListener('click',function(){
     if(resetCdForCoins(it)){det.classList.add('hidden');}
   });
-  /* ⚠️ Выкидывание через подтверждение. */
   $('#detdrop').addEventListener('click',function(){
     if(typeof window.confirmAction==='function'){
       window.confirmAction(
@@ -184,7 +178,6 @@ function openDetail(it){
         }
       );
     }else{
-      /* Страховка: если окно подтверждения недоступно. */
       S.inv.splice(S.inv.indexOf(it),1);
       recalcMaxHp();
       toast('Выброшено: '+info.n);save();
@@ -194,6 +187,5 @@ function openDetail(it){
   $('#detclose').addEventListener('click',function(){det.classList.add('hidden');});
 }
 
-/* ===== Закрыть мешок =====
-   ↙️ Вызывается из: engine_overlay_input.js, openInv (в этом же файле) */
+/* ===== Закрыть мешок ===== */
 function closeInv(){$('#inv').classList.add('hidden');}

@@ -1,12 +1,20 @@
 // engine_combat.js
-// v1.0.3 -> v1.0.4
+// v1.0.6 -> v1.0.7
 // Проект: GameBook1
-// Функция: бой — запуск, вспышка, бросок тени, продолжение и побег после вспышки, обычная атака, огненный шар, побег, конец раунда, маршрутизация действий
-// Изменение: Вспышка в бою с Ордриком не даёт эффекта — он знает заклинание и уклоняется. Пустой ход без карт «Сбежать»/«Продолжить». Плюс в бою с Ордриком при броске кинжала ставится флаг для эпилога
+// Функция: бой — запуск, вспышка, бросок тени, применение зеркала, обычная атака, огненный шар, побег, конец раунда, маршрутизация действий
+// Изменение: восстановление после сбоя: дописана закрывающая скобка функции combatAction()
 
 'use strict';
 
+/* ===== Бонус от меча =====
+   Приоритет:
+   1) ksword (меч рыцаря) — всегда +2;
+   2) new_sword (меч путника) с ядром — +2;
+   3) new_sword без ядра — +1;
+   4) ничего — 0.
+   ↙️ Используется в: attackAction, fleeAction (в этом же файле) */
 function swordBonus(){
+  if(has('ksword'))return 2;
   if(!has('new_sword'))return 0;
   if(S.flags.sword_core_installed)return 2;
   return 1;
@@ -22,6 +30,7 @@ function startCombat(fid,win,flee,first,lose){
     lose:lose||0,
     flashUsed:false,
     knifeUsed:false,
+    mirrorUsed:false,
     flashChoose:false,
     log:[first?'Вы бьёте первым!':'Бой начинается!']
   };
@@ -29,10 +38,7 @@ function startCombat(fid,win,flee,first,lose){
   render();
 }
 
-/* ===== Вспышка в бою =====
-   Обычно: враг бросает, игрок пропускает бросок и получает карты «Сбежать»/«Продолжить».
-   В бою с Ордриком: он знает заклинание, уклоняется. Пустой ход без карт выбора.
-   ↙️ Используется в: applyItemFromBag (engine_items_apply.js), combatAction (в этом же файле) */
+/* ===== Вспышка в бою ===== */
 function flashInCombat(){
   const cb=S.combat;
   if(!cb)return;
@@ -41,7 +47,6 @@ function flashInCombat(){
   if(cb.flashUsed){toast('Вспышка уже использована в этом бою');return;}
   cb.flashUsed=true;
   setCd('flash');
-  /* Ордрик знает это заклинание — Вспышка не срабатывает. */
   if(cb.id==='ordric'){
     cb.log.push('Вспышка! Свет разливается по поляне — но Ордрик знает это заклинание.');
     cb.log.push('Он закрывается посохом и уклоняется. Раунд впустую.');
@@ -58,9 +63,7 @@ function flashInCombat(){
   render();
 }
 
-/* ===== Бросок тени в бою =====
-   Если бой с Ордриком — ставим флаг для эпилога.
-   ↙️ Используется в: applyItemFromBag (engine_items_apply.js), combatAction (в этом же файле) */
+/* ===== Бросок тени в бою ===== */
 function knifeInCombat(){
   const cb=S.combat;
   if(!cb)return;
@@ -72,6 +75,23 @@ function knifeInCombat(){
   cb.hp--;
   if(cb.id==='ordric')S.flags.vory_knife_used_in_ordric=1;
   cb.log.push('Бросок тени! Удар в тень — враг ранен. (−1 HP, без броска)');
+  afterRound(cb);
+}
+
+/* ===== Зеркало в бою против Ордрика ===== */
+function mirrorInCombat(){
+  const cb=S.combat;
+  if(!cb)return;
+  if(!has('mirror')){toast('Нет зеркала');return;}
+  if(cb.mirrorUsed){toast('Зеркало уже использовано в этом бою');return;}
+  if(cb.id!=='ordric'){toast('Зеркало здесь не поможет');return;}
+  cb.mirrorUsed=true;
+  S.inv.splice(S.inv.indexOf('mirror'),1);
+  cb.hp--;
+  cb.log.push('Зеркало! Ты поднимаешь его перед собой — Ордрик видит своё лицо.');
+  cb.log.push('Он замирает на миг. Ты бьёшь. (−1 HP)');
+  cb.log.push('Стекло трескается и рассыпается в твоих руках.');
+  S.flags.mirror_used_in_ordric=1;
   afterRound(cb);
 }
 
@@ -174,6 +194,7 @@ function combatAction(c){
   if(c.ca==='atk'){attackAction();return;}
   if(c.ca==='flash'){flashInCombat();return;}
   if(c.ca==='knife'){knifeInCombat();return;}
+  if(c.ca==='mirror'){mirrorInCombat();return;}
   if(c.ca==='fire'){fireScroll();return;}
   if(c.ca==='flee'){fleeAction();return;}
 }
