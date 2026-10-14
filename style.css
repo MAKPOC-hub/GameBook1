@@ -1,8 +1,8 @@
 /* style.css */
-/* v2.6.7 */
+/* v2.6.7 -> v2.6.8 */
 /* Проект: GameBook1 */
 /* Функция: оформление игры (ХАД, панель текста, карты, оверлеи, анимации, панель быстрого доступа, галерея стартовых предметов, валюты в ХАД, кнопка «Шаг назад») */
-/* Изменение: верхняя панель возвращена к исходному виду — одна общая панель в одну строку на широком экране. Для узкого экрана сохранена двухрядная раскладка с уменьшенными отступами и высотой текста восемь строк. Указатели прокрутки текста — тонкие шевроны и чёрточки с анимацией покачивания. Общий отступ между элементами приложения и отступы блока текста возвращены к исходным значениям */
+/* Изменение: бейдж локации теперь кнопка — содержит значок свитка и текст. Отдельная кнопка истории исчезла из разметки, её стили убраны. На узком экране настройки возвращены во второй ряд: первый ряд — бейдж локации и валюты, второй ряд — «Шаг назад», сердца, «Настройки» */
 :root{--wood:#5b422a;--wood2:#7a5a38;--parch:#f0e2c4;--ink:#2f2417;--gold:#e8c76a}
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{height:100%}
@@ -23,6 +23,7 @@ body{font-family:Georgia,'Times New Roman',serif;background:#0c110b;color:#efe6d
   display:flex;
   align-items:center;
   justify-content:center;
+  gap:8px;
   min-height:46px;
   font-size:13px;
   letter-spacing:.5px;
@@ -37,6 +38,8 @@ body{font-family:Georgia,'Times New Roman',serif;background:#0c110b;color:#efe6d
   white-space:nowrap;
 }
 .badge:hover{border-color:#b8d494}
+.badge-ico{display:block;flex-shrink:0;filter:drop-shadow(0 1px 2px #000)}
+.badge-txt{display:inline-block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .gold{font-size:15px;color:var(--gold)}
 .btn{cursor:pointer;font-family:inherit;font-size:14px;background:linear-gradient(#6b4c30,#533a24);color:#f4e8ce;border:2px solid #8a6a44;border-radius:10px;padding:5px 12px}
 .btn:active{transform:translateY(1px)}
@@ -240,7 +243,7 @@ body{font-family:Georgia,'Times New Roman',serif;background:#0c110b;color:#efe6d
 .f6{transform:rotateY(180deg) translateZ(96px)}
 .f3{transform:rotateY(90deg) translateZ(96px)}
 .f4{transform:rotateY(-90deg) translateZ(96px)}
-.f5{transform:translateX(90deg) translateZ(96px)}
+.f5{transform:rotateX(90deg) translateZ(96px)}
 .f2{transform:rotateX(-90deg) translateZ(96px)}
 @keyframes diceroll{0%{transform:rotateX(0deg) rotateY(0deg)}14.29%{transform:rotateX(69.7deg) rotateY(104.5deg)}28.57%{transform:rotateX(255.5deg) rotateY(383.2deg)}42.86%{transform:rotateX(464.5deg) rotateY(696.8deg)}57.14%{transform:rotateX(603.9deg) rotateY(905.8deg)}71.43%{transform:rotateX(673.5deg) rotateY(1010.3deg)}85.71%{transform:rotateX(708.4deg) rotateY(1062.6deg)}100%{transform:rotateX(720deg) rotateY(1080deg)}}
 @media(max-width:480px){#dicewrap{transform:translate(-50%,-50%) scale(.75)}}
@@ -293,22 +296,31 @@ body{font-family:Georgia,'Times New Roman',serif;background:#0c110b;color:#efe6d
 #adcoinov,#goldov,#markov{z-index:46}
 
 /* ===== Правила для узкого экрана =====
-   Верхняя панель разбивается на два ряда. Первый ряд: бейдж локации,
-   «История», валюты. Второй ряд: «Шаг назад», сердца, «Настройки».
-   Отступы панели и блока текста уменьшены, высота текста — восемь строк. */
+   Верхняя панель разбивается на два ряда.
+   Первый ряд: бейдж локации (он же — вход в историю) и валюты.
+   Второй ряд: «Шаг назад», сердца, «Настройки». */
 @media(max-width:640px){
   #hud{
-    grid-template-columns:auto auto 1fr auto;
+    grid-template-columns:1fr auto;
     grid-template-areas:
-      "stat hist coins set"
-      "back heart heart heart";
+      "stat coins"
+      "back heart"
+      "set set";
     gap:6px;
     padding:8px 10px;
     font-size:13px;
   }
   .hud-l,.hud-c,.hud-r,.hudnav{display:contents}
-  #statb{grid-area:stat;justify-self:start;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:11px;padding:4px 8px}
-  #histb{grid-area:hist;justify-self:start;padding:4px 6px;min-height:42px}
+  #statb{
+    grid-area:stat;
+    justify-self:stretch;
+    min-width:0;
+    font-size:11px;
+    padding:4px 8px;
+    gap:6px;
+  }
+  #statb .badge-ico{width:16px;height:16px}
+  #statb .badge-txt{overflow:hidden;text-overflow:ellipsis}
   #backb{grid-area:back;justify-self:start;min-height:42px;min-width:42px}
   #hudcoins{grid-area:coins;justify-self:end;padding:3px 6px;min-height:42px;gap:4px}
   #hudcoins .purse-n{font-size:12px}
@@ -316,7 +328,6 @@ body{font-family:Georgia,'Times New Roman',serif;background:#0c110b;color:#efe6d
   #setb{grid-area:set;justify-self:end;padding:2px;min-height:42px;min-width:42px}
   #hearts{grid-area:heart;justify-self:center;display:flex;align-items:center;justify-content:center;padding:2px 0}
 
-  .hudnav .histbtn .pl1{display:none}
   #setb svg{width:28px;height:28px}
 
   #panel .txt{font-size:15px}
