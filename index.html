@@ -1,8 +1,8 @@
 <!-- index.html -->
-<!-- v2.6.17 -> v2.6.18 -->
+<!-- v2.6.18 -> v2.6.19 -->
 <!-- Проект: GameBook1 -->
 <!-- Функция: разметка игры и подключение файлов -->
-<!-- Изменение: подключён новый файл version.js — список последних обновлённых файлов. Он стоит перед файлом настроек, чтобы данные о версиях были доступны к моменту открытия окна настроек -->
+<!-- Изменение: добавлен блок показа версии игры внизу справа. Версия берётся из файла version.js -->
 
 <!DOCTYPE html>
 <html lang="ru">
@@ -71,6 +71,7 @@
 <div id="dicewrap"><div id="dice"><div id="dicecube"></div></div><div id="dicebtns"></div></div>
 <div id="toasts"></div>
 <div id="inv" class="ovl hidden"><div class="invbox" id="invbox"></div></div>
+<div id="gameversion">v…</div>
 
 <!-- Внешние файлы: иконки -->
 <script src="icons.js"></script>
@@ -158,6 +159,12 @@
 <!-- Настройки (в самом конце, как было) -->
 <script src="settings.js"></script>
 
-<script>if(typeof render==='function')render();</script>
+<script>
+if(typeof render==='function')render();
+(function(){
+  var el=document.getElementById('gameversion');
+  if(el&&typeof window.GameVersion==='string')el.textContent='v'+window.GameVersion;
+})();
+</script>
 </body>
 </html>
