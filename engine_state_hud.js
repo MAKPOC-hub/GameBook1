@@ -2,7 +2,7 @@
 // v1.0.2 -> v1.0.3
 // Проект: GameBook1
 // Функция: отрисовка верхней панели — сердца, золото, название локации
-// Изменение: название локации теперь кладётся только в текстовую часть бейджа (badge-txt), а не в бейдж целиком. Это сохраняет значок истории, который стоит слева от названия и вставляется один раз в разметке
+// Изменение: название локации теперь пишется в отдельный элемент внутри бейджа — в текст, а не в весь бейдж. Значок свитка внутри бейджа больше не затирается при смене локации
 
 'use strict';
 
@@ -22,11 +22,8 @@ function hud(){
   const sb=$('#statb');
   if(sb){
     const txt=sb.querySelector('.badge-txt');
-    if(txt){
-      txt.textContent=getLocationName(S.node);
-    }else{
-      sb.textContent=getLocationName(S.node);
-    }
+    if(txt)txt.textContent=getLocationName(S.node);
+    else sb.textContent=getLocationName(S.node);
   }
   /* Валюта обновляется отдельно — из settings.js. */
   if(typeof window.updateHudCurrencies==='function')window.updateHudCurrencies();
