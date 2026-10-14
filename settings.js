@@ -1,8 +1,8 @@
 // settings.js
-// v2.1.21 -> v2.1.22
+// v2.1.23 -> v2.1.24
 // Проект: GameBook1
-// Функция: настройки игры + профиль + иконки валют + диалоги осколков, золота, знаков + реклама + автопрокрутка + начисление тайных символов + валюты в верхней панели + тайное меню
-// Изменение: в тайное меню добавлена третья кнопка «Ограничитель» — открывает галерею 50 указателей прокрутки текста
+// Функция: настройки игры + профиль + иконки валют + диалоги осколков, золота, знаков + реклама + автопрокрутка + начисление тайных символов + валюты в верхней панели + тайное меню + окно «Инфо»
+// Изменение: в окне «Инфо» убрана пояснительная фраза «Последние обновлённые файлы проекта». Кнопка «Инфо» в окне настроек перенесена под кнопку «Закрыть» — теперь они стоят друг под другом, а не рядом
 
 (function(){
 const FZ=[1,1.15,1.3,1.5,1.7];
@@ -376,6 +376,39 @@ if(ov4.parentNode)document.body.removeChild(ov4);
 ov4.addEventListener('click',function(e){if(e.target===ov4&&ov4.parentNode)document.body.removeChild(ov4);});
 }
 
+/* ===== Окно «Инфо» — список последних обновлённых файлов =====
+   Данные берёт из файла version.js (список ProjectVersions).
+   Каждая строка — имя файла и версия. Показывает десять записей
+   в том порядке, как они лежат в списке: первая строка — самая свежая.
+   ↗️ ProjectVersions — в: version.js */
+function openInfoDialog(){
+  const old=document.getElementById('infoov');
+  if(old&&old.parentNode)old.parentNode.removeChild(old);
+  const list=(window.ProjectVersions&&Array.isArray(window.ProjectVersions))?window.ProjectVersions:[];
+  let body='';
+  if(list.length===0){
+    body='<div style="text-align:center;font-style:italic;opacity:.7;padding:20px 10px">Список пуст.</div>';
+  }else{
+    body='<div style="text-align:center;font-size:14px;line-height:1.8">';
+    for(let i=0;i<list.length;i++){
+      body+=list[i]+'<br>';
+    }
+    body+='</div>';
+  }
+  const ov=document.createElement('div');
+  ov.className='ovl';ov.id='infoov';
+  ov.innerHTML='<div class="invbox detbox" style="max-width:380px">'
+    +'<h3>Инфо</h3>'
+    +body
+    +'<div style="text-align:center;margin-top:14px"><button class="btn" id="info_close">Закрыть</button></div>'
+    +'</div>';
+  document.body.appendChild(ov);
+  ov.querySelector('#info_close').addEventListener('click',function(){
+    if(ov.parentNode)ov.parentNode.removeChild(ov);
+  });
+  ov.addEventListener('click',function(e){if(e.target===ov&&ov.parentNode)ov.parentNode.removeChild(ov);});
+}
+
 /* ===== Тайное меню =====
    Открывается секретным жестом: двойной клик по одной шестерёнке,
    затем двойной клик по другой. Создаётся один раз при загрузке.
@@ -428,7 +461,8 @@ function _ensureSecretMenu(){
    Кнопка «Предметы» убрана — она была нужна только во время разработки.
    Секретный жест — двойной клик по левой шестерёнке, затем двойной
    клик по правой (или наоборот). Флаги сбрасываются при каждом
-   открытии окна настроек. */
+   открытии окна настроек. Кнопки «Закрыть» и «Инфо» стоят друг
+   под другом по центру окна. */
 const ov=document.createElement('div');
 ov.className='ovl hidden';ov.id='set';
 ov.innerHTML='<div class="invbox"><div class="settitle"><span class="setgear" id="setgear_l">'+headerGearSVG(26)+'</span><span>Настройки</span><span class="setgear" id="setgear_r">'+headerGearSVG(26)+'</span></div>'
@@ -462,7 +496,10 @@ ov.innerHTML='<div class="invbox"><div class="settitle"><span class="setgear" id
 +'</div></div>'
 +'</div>'
 +'<div class="srow"><b>Игра</b><div class="sbtns"><button class="btn" id="restartbtn">▶ Начать сначала</button></div></div>'
-+'<div style="text-align:center;margin-top:10px"><button class="btn" id="setc">Закрыть</button></div>'
++'<div style="text-align:center;margin-top:10px;display:flex;flex-direction:column;align-items:center;gap:8px">'
++'<button class="btn" id="setc" style="min-width:140px">Закрыть</button>'
++'<button class="btn" id="setinfo" style="min-width:140px">Инфо</button>'
++'</div>'
 +'</div>';
 document.body.appendChild(ov);
 
@@ -539,6 +576,7 @@ document.getElementById('setb').addEventListener('click',function(){
   ov.classList.remove('hidden');
 });
 ov.querySelector('#setc').addEventListener('click',function(){ov.classList.add('hidden');});
+ov.querySelector('#setinfo').addEventListener('click',function(){openInfoDialog();});
 ov.addEventListener('click',function(e){if(e.target===ov)ov.classList.add('hidden');});
 ov.querySelector('#skopenbtn').addEventListener('click',function(){
 if(window.Cardbacks)Cardbacks.openSkinSelect(P,saveP,toast);
