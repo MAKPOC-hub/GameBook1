@@ -2,7 +2,7 @@
 // v2.1.23 -> v2.1.24
 // Проект: GameBook1
 // Функция: настройки игры + профиль + иконки валют + диалоги осколков, золота, знаков + реклама + автопрокрутка + начисление тайных символов + валюты в верхней панели + тайное меню + окно «Инфо»
-// Изменение: в окне «Инфо» убрана пояснительная фраза «Последние обновлённые файлы проекта». Кнопка «Инфо» в окне настроек перенесена под кнопку «Закрыть» — теперь они стоят друг под другом, а не рядом
+// Изменение: кнопка «Инфо» убрана из окна настроек — обычным пользователям она не нужна. Теперь она доступна только в тайном меню, четвёртой кнопкой после «Ограничителя»
 
 (function(){
 const FZ=[1,1.15,1.3,1.5,1.7];
@@ -414,7 +414,8 @@ function openInfoDialog(){
    затем двойной клик по другой. Создаётся один раз при загрузке.
    ↘️ «Предметы игры» вызывает window.openItemGallery — реализация
    в itemcards_gallery.js. «Тесты» — заглушка. «Ограничитель» — вызывает
-   window.openPointerGallery, реализация в pointer_gallery.js. */
+   window.openPointerGallery, реализация в pointer_gallery.js.
+   «Инфо» — вызывает openInfoDialog (в этом же файле). */
 let _secretOv=null;
 function _ensureSecretMenu(){
   if(_secretOv)return _secretOv;
@@ -427,6 +428,7 @@ function _ensureSecretMenu(){
     +'<button class="btn" id="sm_items" style="min-width:200px">Предметы игры</button>'
     +'<button class="btn" id="sm_tests" style="min-width:200px">Тесты</button>'
     +'<button class="btn" id="sm_pointer" style="min-width:200px">Ограничитель</button>'
+    +'<button class="btn" id="sm_info" style="min-width:200px">Инфо</button>'
     +'</div>'
     +'<div style="text-align:center;margin-top:14px">'
     +'<button class="btn" id="sm_close">Закрыть</button>'
@@ -454,6 +456,10 @@ function _ensureSecretMenu(){
       toast('Галерея указателей недоступна');
     }
   });
+  _secretOv.querySelector('#sm_info').addEventListener('click',function(){
+    _secretOv.classList.add('hidden');
+    openInfoDialog();
+  });
   return _secretOv;
 }
 
@@ -461,8 +467,9 @@ function _ensureSecretMenu(){
    Кнопка «Предметы» убрана — она была нужна только во время разработки.
    Секретный жест — двойной клик по левой шестерёнке, затем двойной
    клик по правой (или наоборот). Флаги сбрасываются при каждом
-   открытии окна настроек. Кнопки «Закрыть» и «Инфо» стоят друг
-   под другом по центру окна. */
+   открытии окна настроек. Внизу окна — только кнопка «Закрыть»:
+   кнопка «Инфо» убрана из обычного интерфейса и доступна только
+   в тайном меню. */
 const ov=document.createElement('div');
 ov.className='ovl hidden';ov.id='set';
 ov.innerHTML='<div class="invbox"><div class="settitle"><span class="setgear" id="setgear_l">'+headerGearSVG(26)+'</span><span>Настройки</span><span class="setgear" id="setgear_r">'+headerGearSVG(26)+'</span></div>'
@@ -498,7 +505,6 @@ ov.innerHTML='<div class="invbox"><div class="settitle"><span class="setgear" id
 +'<div class="srow"><b>Игра</b><div class="sbtns"><button class="btn" id="restartbtn">▶ Начать сначала</button></div></div>'
 +'<div style="text-align:center;margin-top:10px;display:flex;flex-direction:column;align-items:center;gap:8px">'
 +'<button class="btn" id="setc" style="min-width:140px">Закрыть</button>'
-+'<button class="btn" id="setinfo" style="min-width:140px">Инфо</button>'
 +'</div>'
 +'</div>';
 document.body.appendChild(ov);
@@ -576,7 +582,6 @@ document.getElementById('setb').addEventListener('click',function(){
   ov.classList.remove('hidden');
 });
 ov.querySelector('#setc').addEventListener('click',function(){ov.classList.add('hidden');});
-ov.querySelector('#setinfo').addEventListener('click',function(){openInfoDialog();});
 ov.addEventListener('click',function(e){if(e.target===ov)ov.classList.add('hidden');});
 ov.querySelector('#skopenbtn').addEventListener('click',function(){
 if(window.Cardbacks)Cardbacks.openSkinSelect(P,saveP,toast);
