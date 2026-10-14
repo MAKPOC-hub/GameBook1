@@ -1,8 +1,8 @@
 // engine_overlay_input.js
-// v1.0.4 -> v1.0.5
+// v1.0.5 -> v1.0.6
 // Проект: GameBook1
 // Функция: обработчики ввода — кнопки HUD (история, шаг назад), закрытие мешка по клику мимо, горячие клавиши
-// Изменение: восстановление после сбоя: дописана закрывающая скобка обработчика клавиатуры
+// Изменение: открытие меню истории перенесено с отдельной кнопки на бейдж локации. Кнопка «История» удалена из разметки — её роль теперь выполняет бейдж. Клавиша H по-прежнему открывает историю
 
 'use strict';
 
@@ -14,12 +14,7 @@
    ↘️ Обработчики валют (золото, осколки, знаки) — в: settings.js (initHudCurrencies)
    ↙️ Загружается в конце, после того как DOM готов */
 const statBtn=$('#statb');
-if(statBtn)statBtn.addEventListener('click',openChar);
-const histBtn=$('#histb');
-if(histBtn)histBtn.addEventListener('click',function(){openHistoryOverlay();});
-/* ⚠️ Кнопка «Шаг назад» вызывает откат за 1 осколок. Сама функция goBack
-   живёт в engine_checkpoints_logic.js, там же — сохранение снимков
-   состояния до трёх последних. */
+if(statBtn)statBtn.addEventListener('click',function(){openHistoryOverlay();});
 const backBtn=$('#backb');
 if(backBtn)backBtn.addEventListener('click',function(){
   if(typeof goBack==='function')goBack();
