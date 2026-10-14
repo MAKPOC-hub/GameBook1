@@ -1,8 +1,8 @@
 // engine_state_hud.js
-// v1.0.1 -> v1.0.2
+// v1.0.2 -> v1.0.3
 // Проект: GameBook1
 // Функция: отрисовка верхней панели — сердца, золото, название локации
-// Изменение: восстановление после сбоя: дописана закрывающая скобка функции hud()
+// Изменение: название локации теперь кладётся только в текстовую часть бейджа (badge-txt), а не в бейдж целиком. Это сохраняет значок истории, который стоит слева от названия и вставляется один раз в разметке
 
 'use strict';
 
@@ -20,7 +20,14 @@ function hud(){
   const heartsEl=$('#hearts');
   if(heartsEl)heartsEl.innerHTML=h;
   const sb=$('#statb');
-  if(sb)sb.innerHTML=getLocationName(S.node);
+  if(sb){
+    const txt=sb.querySelector('.badge-txt');
+    if(txt){
+      txt.textContent=getLocationName(S.node);
+    }else{
+      sb.textContent=getLocationName(S.node);
+    }
+  }
   /* Валюта обновляется отдельно — из settings.js. */
   if(typeof window.updateHudCurrencies==='function')window.updateHudCurrencies();
 }
